@@ -70,33 +70,58 @@ function parseJson(text: string): Menu {
  * @param images JPEG buffers, one per menu photo/page.
  */
 export async function extractMenu(images: Buffer[]): Promise<Menu> {
-  const resp = await client.messages.create({
-    model: config.anthropic.model,
-    max_tokens: 8000,
-    system: SYSTEM,
-    messages: [
-      {
-        role: "user",
-        content: [
-          ...images.map(imageBlock),
-          {
-            type: "text",
-            text:
-              images.length > 1
-                ? `These ${images.length} photos are pages of one menu. Digitise the whole thing as one JSON object.`
-                : "Digitise this menu as one JSON object.",
-          },
-        ],
-      },
-    ],
-  });
+  // A full multi-page menu can be large; 8k tokens truncated the JSON
+  // mid-array. With a generous max_tokens the SDK rejects a non-streaming
+  // request ("Streaming is required for operations that may take longer than
+  // 10 minutes"), so we stream and collect the final message.
+  const resp = await client.messages
+    .stream({
+      model: config.anthropic.model,
+      max_tokens: 32000,
+      system: SYSTEM,
+      messages: [
+        {
+          role: "user",
+          content: [
+            ...images.map(imageBlock),
+            {
+              type: "text",
+              text:
+                images.length > 1
+                  ? `These ${images.length} photos are pages of one menu. Digitise the whole thing as one JSON object.`
+                  : "Digitise this menu as one JSON object.",
+            },
+          ],
+        },
+      ],
+    })
+    .finalMessage();
 
   const text = resp.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
     .map((b) => b.text)
     .join("");
 
-  const menu = parseJson(text);
+  // If the model hit the token ceiling the JSON is incomplete — report it
+  // clearly instead of surfacing a cryptic JSON.parse position error.
+  if (resp.stop_reason === "max_tokens") {
+    throw new Error(
+      "菜單太大、辨識結果被截斷。請分批傳較少的頁數，或調高 max_tokens。" +
+        " (model output hit max_tokens; JSON incomplete)",
+    );
+  }
+
+  let menu: Menu;
+  try {
+    menu = parseJson(text);
+  } catch (err) {
+    // Persist the raw model output so the failure can be inspected.
+    try {
+      const { writeFileSync } = await import("node:fs");
+      writeFileSync("/tmp/menubot-last-extract.txt", text);
+    } catch {}
+    throw err;
+  }
   if (!menu.sections?.length) {
     throw new Error("No menu sections were detected in the photos.");
   }
