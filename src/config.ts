@@ -1,7 +1,14 @@
 import "dotenv/config";
 
+// Trim whitespace and strip any angle brackets that get pasted in around a
+// value (e.g. a URL copied as "<https://...>"), which would otherwise break
+// links and API paths.
+function clean(v: string | undefined): string {
+  return (v ?? "").trim().replace(/^<+|>+$/g, "").trim();
+}
+
 function required(name: string): string {
-  const v = process.env[name]?.trim();
+  const v = clean(process.env[name]);
   if (!v) {
     console.error(`Missing required env var: ${name}`);
     process.exit(1);
@@ -10,7 +17,7 @@ function required(name: string): string {
 }
 
 function optional(name: string, fallback = ""): string {
-  return process.env[name]?.trim() || fallback;
+  return clean(process.env[name]) || fallback;
 }
 
 const owner = required("GITHUB_OWNER");
