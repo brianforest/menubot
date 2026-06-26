@@ -38,3 +38,13 @@ export interface Menu {
   currency?: string;
   sections: MenuSection[];
 }
+
+/** One ingestion source for the extractor: a photo or a PDF. */
+export interface MenuSource {
+  /** "image" (e.g. a JPEG photo) or "pdf". */
+  kind: "image" | "pdf";
+  /** Raw file bytes. */
+  bytes: Buffer;
+  /** MIME type, e.g. "image/jpeg" or "application/pdf". */
+  mime: string;
+}
