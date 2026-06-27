@@ -61,10 +61,16 @@
     background: var(--accent-soft); padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
 
   .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 14px calc(80px + var(--safe-b)); }
-  .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: center;
-    padding: 16px 14px; margin: 18px auto 4px; max-width: 720px; background: var(--card);
-    border: 1px solid var(--line); border-radius: 14px; font-size: 15px; }
-  .legend span { white-space: nowrap; }
+  .filterbar { display: flex; gap: 8px; overflow-x: auto; padding: 6px 14px 8px;
+    scrollbar-width: none; -ms-overflow-style: none; }
+  .filterbar::-webkit-scrollbar { display: none; }
+  .chip { flex: 0 0 auto; font: inherit; font-size: 15px; font-weight: 500;
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    border-radius: 999px; padding: 6px 12px; min-height: 36px; cursor: pointer;
+    white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; }
+  .chip.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+  body.lang-zh .chip .cen { display: none; }
+  body.lang-en .chip .czh { display: none; }
 
   section { margin-top: 38px; scroll-margin-top: 96px; }
   .sec-head { border-bottom: 2px solid var(--ink); padding-bottom: 8px; margin-bottom: 14px;
@@ -116,17 +122,10 @@
     <button data-lang="en">EN</button>
   </div>
   <nav class="nav" id="nav" aria-label="sections"></nav>
+  <div class="filterbar" id="filterbar" role="group" aria-label="filters"></div>
 </div>
 
 <div class="wrap">
-  <div class="legend">
-    <span>🌶️ Spicy 辣</span>
-    <span>🌱 Vegetarian 適合素食</span>
-    <span>🐷 Pork 豬肉</span>
-    <span>🐔 Chicken 雞肉</span>
-    <span>🐟 Seafood 海鮮</span>
-    <span>🐮 Beef 牛肉</span>
-  </div>
   <main id="menu"></main>
 </div>
 
@@ -138,24 +137,28 @@
 </footer>
 
 <script>
-const ICON = { spicy:"🌶️", veg:"🌱", pork:"🐷", chicken:"🐔", seafood:"🐟", beef:"🐮" };
 const MENU = {{MENU_JSON}};
 const TAGS = {{TAGS_JSON}};
+const TAG_BY_ID = Object.fromEntries(TAGS.map(t => [t.id, t]));
 
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const menuEl = document.getElementById("menu");
 const navEl = document.getElementById("nav");
+const barEl = document.getElementById("filterbar");
 
+// Render sections + items (items carry data-tags for filtering).
 MENU.forEach((sec, i) => {
   const id = sec.id || ("sec-" + i);
-  navEl.insertAdjacentHTML("beforeend", `<a href="#${id}">${esc(sec.zh || sec.en)}</a>`);
+  navEl.insertAdjacentHTML("beforeend", `<a href="#${id}" data-sec="${id}">${esc(sec.zh || sec.en)}</a>`);
 
   const items = (sec.items || []).map(it => {
-    const tags = (it.t && it.t.length) ? `<span class="tags">${it.t.map(k=>ICON[k]||"").join(" ")}</span>` : "";
+    const ids = it.tags || [];
+    const icons = ids.map(t => (TAG_BY_ID[t] && TAG_BY_ID[t].icon) || "").filter(Boolean).join(" ");
+    const tags = icons ? `<span class="tags">${icons}</span>` : "";
     const price = it.p ? `<div class="price">${esc(it.p)}</div>` : "";
     const den = it.den ? `<div class="desc">${esc(it.den)}</div>` : "";
     const dzh = it.dzh ? `<div class="desc-zh">${esc(it.dzh)}</div>` : "";
-    return `<div class="item">
+    return `<div class="item" data-tags="${esc(ids.join(" "))}">
       <div class="row">
         <div>
           <div class="name">${esc(it.en)} ${tags}</div>
@@ -172,6 +175,61 @@ MENU.forEach((sec, i) => {
   </section>`);
 });
 
+// Build the filter bar from the tags actually used by ≥1 item (in TAGS order).
+const used = new Set();
+MENU.forEach(s => (s.items || []).forEach(it => (it.tags || []).forEach(id => used.add(id))));
+const filterTags = TAGS.filter(t => used.has(t.id));
+const active = new Set();
+
+if (filterTags.length) {
+  barEl.insertAdjacentHTML("beforeend", `<button class="chip chip-all active" data-id="">全部 All</button>`);
+  filterTags.forEach(t => {
+    const ic = t.icon ? `<span class="ci">${t.icon}</span>` : "";
+    barEl.insertAdjacentHTML("beforeend",
+      `<button class="chip" data-id="${esc(t.id)}">${ic}<span class="cen">${esc(t.en)}</span><span class="czh">${esc(t.zh)}</span></button>`);
+  });
+} else {
+  barEl.style.display = "none";
+}
+
+// AND filter: an item shows iff its tags include every active id.
+function applyFilter() {
+  document.querySelectorAll("#menu section").forEach(sec => {
+    let visible = 0;
+    sec.querySelectorAll(".item").forEach(el => {
+      const tags = new Set((el.getAttribute("data-tags") || "").split(" ").filter(Boolean));
+      let show = true;
+      active.forEach(id => { if (!tags.has(id)) show = false; });
+      el.style.display = show ? "" : "none";
+      if (show) visible++;
+    });
+    sec.style.display = visible ? "" : "none";
+    const link = navEl.querySelector(`a[data-sec="${sec.id}"]`);
+    if (link) link.style.display = visible ? "" : "none";
+  });
+}
+
+barEl.addEventListener("click", (e) => {
+  const btn = e.target.closest(".chip");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (id === "") active.clear();
+  else if (active.has(id)) active.delete(id);
+  else active.add(id);
+
+  barEl.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+  if (active.size === 0) {
+    barEl.querySelector(".chip-all").classList.add("active");
+  } else {
+    active.forEach(a => {
+      const c = barEl.querySelector(`.chip[data-id="${CSS.escape(a)}"]`);
+      if (c) c.classList.add("active");
+    });
+  }
+  applyFilter();
+});
+
+// Language toggle (unchanged behaviour).
 document.querySelectorAll(".lang-toggle button").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".lang-toggle button").forEach(b => b.classList.remove("active"));
@@ -180,9 +238,10 @@ document.querySelectorAll(".lang-toggle button").forEach(btn => {
   });
 });
 
+// Back to top (unchanged behaviour).
 const toTop = document.getElementById("toTop");
-addEventListener("scroll", () => toTop.classList.toggle("show", scrollY > 600), { passive:true });
-toTop.addEventListener("click", () => scrollTo({ top:0, behavior:"smooth" }));
+addEventListener("scroll", () => toTop.classList.toggle("show", scrollY > 600), { passive: true });
+toTop.addEventListener("click", () => scrollTo({ top: 0, behavior: "smooth" }));
 </script>
 </body>
 </html>
