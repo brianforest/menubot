@@ -40,7 +40,8 @@ export function renderMenu(menu: Menu): string {
   return TEMPLATE.replace(/\{\{TITLE_EN\}\}/g, escapeHtml(titleEn))
     .replace(/\{\{TITLE_ZH\}\}/g, escapeHtml(titleZh))
     .replace(/\{\{SUBTITLE\}\}/g, escapeHtml(subtitle))
-    .replace("{{MENU_JSON}}", JSON.stringify(sections));
+    .replace("{{MENU_JSON}}", JSON.stringify(sections))
+    .replace("{{TAGS_JSON}}", JSON.stringify(menu.tags ?? []));
 }
 
 function escapeHtml(s: string): string {

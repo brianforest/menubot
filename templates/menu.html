@@ -140,6 +140,7 @@
 <script>
 const ICON = { spicy:"🌶️", veg:"🌱", pork:"🐷", chicken:"🐔", seafood:"🐟", beef:"🐮" };
 const MENU = {{MENU_JSON}};
+const TAGS = {{TAGS_JSON}};
 
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const menuEl = document.getElementById("menu");
