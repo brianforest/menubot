@@ -31,6 +31,10 @@ Output schema (return ONLY this JSON, no markdown, no commentary):
           "p": string,                               // price exactly as printed; "" if none
           "tags": string[],                          // ids of the tags above this item carries; [] if none
           "xterm": string,                           // see "Explanations" below; "" if not needed
+          "options": [                               // see "Option groups" below; omit or [] if none
+            { "en": string, "zh": string, "kind": string,
+              "choices": [ { "en": string, "zh": string, "p": string } ] }
+          ],
           "den": string,                             // English description if present, else ""
           "dzh": string                              // 繁體中文 translation of the description, else ""
         }
@@ -66,6 +70,18 @@ Explanations (xterm) — IMPORTANT:
 - Do NOT set xterm for common, globally-known items (fried rice, caesar salad,
   latte, coke). When in doubt, leave it "".
 - Do NOT write the explanation here — only the slug.
+
+Option groups (options) — IMPORTANT:
+- When an item lets the diner configure it — choose a broth/noodle/size, add
+  toppings, or has included components listed as sub-bullets — capture each as an
+  option group: a bilingual label ("en"/"zh"), a "kind", and bilingual "choices".
+- "kind" is one of:
+    "one"  — pick exactly one (cues: "choose", "可選", "任選一")
+    "list" — included components, simply listed (no choice to make)
+    "any"  — optional paid add-ons (cues: "add …", "加 …"); put the add-on's extra
+             price in that choice's "p", else "".
+- Do NOT also duplicate the option structure into "den"/"dzh"; keep those for genuine
+  prose description only. Omit "options" (or use []) when the item is not configurable.
 
 Other rules:
 - Capture EVERY item and section; do not summarise or skip.
