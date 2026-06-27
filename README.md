@@ -12,11 +12,13 @@ replies with a shareable link, perfect for sending to family & friends.
 
 1. You send a whole menu as any number of photos and/or a PDF, then tap the
    **✅ Done** button so the bot knows the upload is complete.
-2. Photos are buffered into one batch and read by a Claude vision model, which
-   extracts every section & item and translates them to Traditional Chinese
-   (names, descriptions, prices, and dietary icons).
+2. Photos/PDF are read by a Claude vision model, which extracts every section &
+   item, translates them to Traditional Chinese (names, descriptions, prices),
+   and tags each item with the menu's own classification labels (dietary,
+   allergen, "Highlight"/signature, …). Works for non-food menus too (e.g. spa).
 3. The structured menu is rendered into a self-contained HTML page (language
-   toggle 雙語/中文/EN, category jump-nav, share preview cards).
+   toggle 雙語/中文/EN, category jump-nav, a dynamic tag filter bar with
+   multi-select AND filtering, share preview cards).
 4. The page is committed to this repo under `docs/m/<slug>/index.html` and
    served by GitHub Pages. The bot replies with the public URL.
 
