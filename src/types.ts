@@ -1,11 +1,16 @@
-/** Dietary / category icons that appear in the menu legend. */
-export type DietTag =
-  | "spicy"
-  | "veg"
-  | "pork"
-  | "chicken"
-  | "seafood"
-  | "beef";
+/** A classification label this menu uses (dietary, allergen, highlight, …). */
+export interface TagDef {
+  /** Stable lowercase-slug id, e.g. "vegetarian", "gluten-free", "signature". */
+  id: string;
+  /** English label. */
+  en: string;
+  /** Traditional-Chinese label. */
+  zh: string;
+  /** Emoji shown on chips/items; omitted when no fitting emoji applies. */
+  icon?: string;
+  /** Coarse grouping: "diet" | "allergen" | "protein" | "highlight" | "other". */
+  group?: string;
+}
 
 export interface MenuItem {
   /** English name (as printed). */
@@ -14,8 +19,8 @@ export interface MenuItem {
   zh: string;
   /** Price exactly as printed, e.g. "18", "8 / 9", "108". Optional. */
   p?: string;
-  /** Dietary / category icons. */
-  t?: DietTag[];
+  /** Ids of the TagDefs this item carries. */
+  tags?: string[];
   /** English description, if the menu has one. */
   den?: string;
   /** Traditional-Chinese description. */
@@ -36,6 +41,10 @@ export interface Menu {
   restaurant?: { en?: string; zh?: string };
   /** Currency label, e.g. "SGD". */
   currency?: string;
+  /** Best-effort menu type: "food" | "spa" | "service" | "other". Informational. */
+  kind?: string;
+  /** The tag vocabulary used by this menu — only tags carried by ≥1 item. */
+  tags?: TagDef[];
   sections: MenuSection[];
 }
 
