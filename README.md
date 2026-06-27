@@ -16,6 +16,9 @@ replies with a shareable link, perfect for sending to family & friends.
    item, translates them to Traditional Chinese (names, descriptions, prices),
    and tags each item with the menu's own classification labels (dietary,
    allergen, "Highlight"/signature, …). Works for non-food menus too (e.g. spa).
+   Items a traveller might not recognise (e.g. Flat White, Laksa) get a short
+   bilingual explanation behind a 💡, cached in a local glossary so each term is
+   explained at most once.
 3. The structured menu is rendered into a self-contained HTML page (language
    toggle 雙語/中文/EN, category jump-nav, a dynamic tag filter bar with
    multi-select AND filtering, share preview cards).
