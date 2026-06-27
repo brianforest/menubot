@@ -24,7 +24,7 @@ test("take returns the items and clears the batch", () => {
   store.add(1, item("a"), 1000);
   store.add(1, item("b"), 1000);
   const taken = store.take(1);
-  assert.deepEqual(taken?.map((i) => i.fileId), ["a", "b"]);
+  assert.deepEqual(taken?.items.map((i) => i.fileId), ["a", "b"]);
   assert.equal(store.take(1), undefined); // cleared
 });
 
@@ -51,4 +51,25 @@ test("activity resets the idle clock", () => {
   const ttl = 2000;
   assert.deepEqual(store.expireStale(4000, ttl), []); // idle 1000 < ttl
   assert.deepEqual(store.expireStale(5000, ttl), [1]); // idle 2000 >= ttl
+});
+
+test("setHint stores a trimmed hint on an active batch and take returns it", () => {
+  const store = new BatchStore();
+  store.add(1, item("a"), 1000);
+  assert.equal(store.setHint(1, "  Din Tai Fung 信義店  ", 1100), true);
+  const taken = store.take(1);
+  assert.equal(taken?.hint, "Din Tai Fung 信義店");
+  assert.deepEqual(taken?.items.map((i) => i.fileId), ["a"]);
+});
+
+test("setHint on a chat with no active batch returns false", () => {
+  const store = new BatchStore();
+  assert.equal(store.setHint(7, "rest", 1000), false);
+});
+
+test("setHint ignores an empty/whitespace hint", () => {
+  const store = new BatchStore();
+  store.add(1, item("a"), 1000);
+  assert.equal(store.setHint(1, "   ", 1100), false);
+  assert.equal(store.take(1)?.hint, undefined);
 });
