@@ -6,15 +6,19 @@ import { buildContentBlocks } from "./blocks.js";
 const client = new Anthropic({ apiKey: config.anthropic.apiKey });
 
 const SYSTEM = `You are a menu digitisation assistant. You are given one or more
-photos and/or a PDF of a single restaurant's menu (possibly several pages/sides).
-Read every
-section and every item, then return a STRICT JSON object describing the whole
-menu in English with a Traditional-Chinese (繁體中文) translation.
+photos and/or a PDF of a single menu or list — restaurant food, spa treatments,
+services, etc. Read every section and every item, then return a STRICT JSON object
+describing the whole thing in English with a Traditional-Chinese (繁體中文)
+translation.
 
 Output schema (return ONLY this JSON, no markdown, no commentary):
 {
   "restaurant": { "en": string, "zh": string },   // best guess; "" if unknown
   "currency": string,                                // e.g. "SGD"; "" if unknown
+  "kind": string,                                    // "food" | "spa" | "service" | "other"; "" if unsure
+  "tags": [                                          // the classification labels THIS menu uses
+    { "id": string, "en": string, "zh": string, "icon": string, "group": string }
+  ],
   "sections": [
     {
       "en": string,                                  // section title in English
@@ -24,8 +28,8 @@ Output schema (return ONLY this JSON, no markdown, no commentary):
         {
           "en": string,                              // item name as printed
           "zh": string,                              // 繁體中文 name (natural culinary wording)
-          "p": string,                               // price exactly as printed, e.g. "18", "8 / 9"; "" if none
-          "t": string[],                             // any of: "spicy","veg","pork","chicken","seafood","beef"
+          "p": string,                               // price exactly as printed; "" if none
+          "tags": string[],                          // ids of the tags above this item carries; [] if none
           "den": string,                             // English description if present, else ""
           "dzh": string                              // 繁體中文 translation of the description, else ""
         }
@@ -34,16 +38,40 @@ Output schema (return ONLY this JSON, no markdown, no commentary):
   ]
 }
 
-Rules:
+Tags — IMPORTANT:
+- A menu uses its own vocabulary of labels. Capture EVERY distinct classification
+  label the menu actually uses (dietary marks, allergen warnings, "Highlight",
+  "Chef's", "招牌", etc.) as an entry in "tags", then reference them per item by id.
+- Use these well-known ids and icons when the concept matches (do not invent new
+  ids for these):
+    vegetarian 🌱 | vegan 🌱 | spicy 🌶️ | pork 🐷 | chicken 🐔 | seafood 🐟 |
+    beef 🐮 | gluten-free 🌾 | contains-nuts 🥜 | dairy 🥛 | signature ⭐
+- Map any "Highlight / Chef's recommendation / 招牌 / Recommended / 推薦" marker to
+  the "signature" tag (icon ⭐, group "highlight").
+- For a menu-specific label not in the list above, mint a stable lowercase-slug
+  "id" (e.g. "contains-shellfish"), give bilingual "en"/"zh", set a fitting emoji
+  "icon" (or "" if none fits), and a "group" of "diet" | "allergen" | "protein"
+  | "highlight" | "other".
+- Only include a tag in "tags" if at least one item carries it.
+- NEVER emit a "popular" tag — that is reserved and populated elsewhere.
+
+Other rules:
 - Capture EVERY item and section; do not summarise or skip.
 - Keep prices as strings exactly as printed (no currency symbol unless printed).
-- Map the menu's legend icons (spicy / vegetarian / pork / chicken / seafood /
-  beef) to the "t" array. If an item has no icon, use [].
 - Traditional Chinese only (繁體中文), using natural Hong Kong / Taiwan culinary
   terms. Translate descriptions faithfully but concisely.
 - Preserve the original section order as it reads on the menu.
-- If a field is unknown, use "" (or [] for "t"); never invent prices.
-- Return valid JSON parseable by JSON.parse. No trailing commas.`;
+- If a field is unknown, use "" (or [] for "tags"); never invent prices.
+- Return valid JSON parseable by JSON.parse. No trailing commas.
+
+Example "tags" + item (illustrative):
+  "tags": [
+    { "id": "vegetarian", "en": "Vegetarian", "zh": "適合素食", "icon": "🌱", "group": "diet" },
+    { "id": "gluten-free", "en": "Gluten Free", "zh": "無麩質", "icon": "🌾", "group": "diet" },
+    { "id": "contains-nuts", "en": "Contains Nuts", "zh": "含堅果", "icon": "🥜", "group": "allergen" },
+    { "id": "signature", "en": "Signature", "zh": "招牌", "icon": "⭐", "group": "highlight" }
+  ],
+  ... an item: { "en": "Pesto Pasta", "zh": "青醬義大利麵", "p": "22", "tags": ["vegetarian","contains-nuts","signature"], "den": "", "dzh": "" }`;
 
 /** Pull the first balanced JSON object out of a string. */
 function parseJson(text: string): Menu {
