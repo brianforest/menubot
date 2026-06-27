@@ -83,6 +83,24 @@ Option groups (options) — IMPORTANT:
 - Do NOT also duplicate the option structure into "den"/"dzh"; keep those for genuine
   prose description only. Omit "options" (or use []) when the item is not configurable.
 
+Example item with options (the noodle-soup shape):
+  {
+    "en": "Noodle Soup", "zh": "湯麵", "p": "", "tags": [], "xterm": "",
+    "options": [
+      { "en": "Broth", "zh": "湯底可選", "kind": "one",
+        "choices": [ {"en":"Clear broth","zh":"清湯","p":""},
+                     {"en":"Nyonya Curry Broth","zh":"娘惹咖哩湯","p":""} ] },
+      { "en": "Toppings", "zh": "配料", "kind": "list",
+        "choices": [ {"en":"Tender chicken","zh":"嫩雞肉","p":""},
+                     {"en":"Fresh vegetables","zh":"新鮮蔬菜","p":""} ] },
+      { "en": "Noodles", "zh": "麵條可選", "kind": "one",
+        "choices": [ {"en":"Vermicelli","zh":"米粉","p":""},
+                     {"en":"Flat rice noodles","zh":"河粉","p":""},
+                     {"en":"Egg noodles","zh":"蛋麵","p":""} ] }
+    ],
+    "den": "", "dzh": ""
+  }
+
 Other rules:
 - Capture EVERY item and section; do not summarise or skip.
 - Keep prices as strings exactly as printed (no currency symbol unless printed).
