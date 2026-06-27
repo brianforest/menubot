@@ -82,15 +82,15 @@ bot.callbackQuery(DONE_DATA, async (ctx) => {
   await ctx.answerCallbackQuery();
   const chatId = ctx.chat?.id;
   if (chatId == null) return;
-  const items = store.take(chatId);
-  if (!items || items.length === 0) {
+  const batch = store.take(chatId);
+  if (!batch || batch.items.length === 0) {
     await ctx.reply(
       "還沒收到任何菜單照片或 PDF，請先傳給我。\n" +
         "No menu received yet — send photos or a PDF first.",
     );
     return;
   }
-  void processBatch(ctx, items);
+  void processBatch(ctx, batch.items);
 });
 
 async function processBatch(ctx: Context, items: PendingItem[]): Promise<void> {
