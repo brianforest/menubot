@@ -21,7 +21,8 @@ replies with a shareable link, perfect for sending to family & friends.
    explained at most once.
 3. The structured menu is rendered into a self-contained HTML page (language
    toggle 雙語/中文/EN, category jump-nav, a dynamic tag filter bar with
-   multi-select AND filtering, share preview cards).
+   multi-select AND filtering, layered option groups for configurable items
+   (broths, noodles, toppings, add-ons), share preview cards).
 4. The page is committed to this repo under `docs/m/<slug>/index.html` and
    served by GitHub Pages. The bot replies with the public URL.
 
