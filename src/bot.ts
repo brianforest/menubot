@@ -3,6 +3,9 @@ import { config } from "./config.js";
 import { extractMenu } from "./extract.js";
 import { renderMenu, slugify } from "./render.js";
 import { publishMenu } from "./publish.js";
+import { Glossary } from "./glossary.js";
+import { enrichMenu } from "./enrich.js";
+import { explainTerms } from "./explain.js";
 import { BatchStore, type PendingItem } from "./batch.js";
 import type { MenuSource } from "./types.js";
 
@@ -27,6 +30,7 @@ bot.use(async (ctx, next) => {
 // can't tell "finished" from "upload stalled", so there is no auto-start. A
 // 30-minute idle safety net only frees memory and notifies; it never processes.
 const store = new BatchStore();
+const glossary = new Glossary(config.glossary.dbPath);
 const DONE_DATA = "menu_done";
 const IDLE_EXPIRY_MS = 30 * 60 * 1000;
 // Telegram Bot API caps file download at 20 MB/file; keep the aggregate here too.
@@ -127,6 +131,12 @@ async function processBatch(ctx: Context, items: PendingItem[]): Promise<void> {
       `🧠 正在辨識與翻譯 ${sources.length} 個檔案… Digitising ${sources.length} file(s)…`,
     );
     const menu = await extractMenu(sources);
+
+    try {
+      await enrichMenu(menu, glossary, explainTerms, new Date().toISOString());
+    } catch (e) {
+      console.error("enrichMenu failed (publishing without explanations):", e);
+    }
 
     const name = menu.restaurant?.en || menu.restaurant?.zh || "menu";
     const slug = slugify(name);
