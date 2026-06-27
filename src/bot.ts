@@ -8,6 +8,8 @@ import { enrichMenu } from "./enrich.js";
 import { explainTerms } from "./explain.js";
 import { BatchStore, type PendingItem } from "./batch.js";
 import type { MenuSource } from "./types.js";
+import { tagPopular } from "./popular.js";
+import { findPopular } from "./web-popular.js";
 
 export const bot = new Bot(config.telegram.token);
 
@@ -45,7 +47,9 @@ const doneKeyboard = new InlineKeyboard().text("✅ 完成並產生菜單 / Done
 
 const COLLECT_MSG =
   "📸 收到。整本菜單可多張照片／PDF 一次傳給我，全部傳完後請按【✅ 完成並產生菜單】。\n" +
-  "Send all the pages (photos and/or a PDF); tap ✅ Done when you've finished.";
+  "（可選）再傳一則文字告訴我店名／地點，或貼 Google 地圖連結，辨識會更準。\n" +
+  "Send all the pages (photos and/or a PDF); optionally also send the restaurant " +
+  "name / location or a Google Maps link. Tap ✅ Done when finished.";
 const EXPIRY_MSG =
   "📭 這批等待過久已自動清空，請重新傳整本菜單。\n" +
   "This session expired after a long pause — please resend the menu.";
@@ -82,18 +86,22 @@ bot.callbackQuery(DONE_DATA, async (ctx) => {
   await ctx.answerCallbackQuery();
   const chatId = ctx.chat?.id;
   if (chatId == null) return;
-  const batch = store.take(chatId);
-  if (!batch || batch.items.length === 0) {
+  const taken = store.take(chatId);
+  if (!taken || taken.items.length === 0) {
     await ctx.reply(
       "還沒收到任何菜單照片或 PDF，請先傳給我。\n" +
         "No menu received yet — send photos or a PDF first.",
     );
     return;
   }
-  void processBatch(ctx, batch.items);
+  void processBatch(ctx, taken.items, taken.hint);
 });
 
-async function processBatch(ctx: Context, items: PendingItem[]): Promise<void> {
+async function processBatch(
+  ctx: Context,
+  items: PendingItem[],
+  hint?: string,
+): Promise<void> {
   try {
     const results = await Promise.allSettled(
       items.map(async (it) => ({
@@ -143,6 +151,12 @@ async function processBatch(ctx: Context, items: PendingItem[]): Promise<void> {
       } catch (e) {
         console.error("enrichMenu failed (publishing without explanations):", e);
       }
+    }
+
+    try {
+      await tagPopular(menu, findPopular, hint);
+    } catch (e) {
+      console.error("popularity tagging failed (publishing without 🔥):", e);
     }
 
     const name = menu.restaurant?.en || menu.restaurant?.zh || "menu";
@@ -202,5 +216,18 @@ bot.command("help", (ctx) =>
       "Send menu photos (one or many) or a PDF, then tap ✅ Done.",
   ),
 );
+
+// Optional restaurant/location hint typed during a collecting session.
+// Registered after the command handlers so /start and /help reach theirs first.
+bot.on("message:text", async (ctx) => {
+  const text = ctx.message.text?.trim();
+  const chatId = ctx.chat?.id;
+  if (!text || text.startsWith("/") || chatId == null) return;
+  if (store.setHint(chatId, text, Date.now())) {
+    await ctx.reply(
+      "📝 已記下，會用來提升辨識準確度。\nNoted — I'll use this to improve results.",
+    );
+  }
+});
 
 bot.catch((err) => console.error("Bot error:", err.error));
