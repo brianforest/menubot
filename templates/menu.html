@@ -85,7 +85,7 @@
   .item { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; }
   .item .row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
   .item .name { font-weight: 700; font-size: 18px; }
-  .item .name .tags { font-size: 15px; margin-left: 5px; letter-spacing: 1px; }
+  .item .tags { display: block; margin-top: 4px; font-size: 15px; letter-spacing: 1px; }
   .item .name-zh { color: var(--accent); font-weight: 500; font-size: 17px; margin-top: 1px; }
   .item .price { font-weight: 700; color: var(--price); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .item .desc { color: var(--muted); font-size: 15px; margin-top: 6px; }
@@ -161,8 +161,9 @@ MENU.forEach((sec, i) => {
     return `<div class="item" data-tags="${esc(ids.join(" "))}">
       <div class="row">
         <div>
-          <div class="name">${esc(it.en)} ${tags}</div>
+          <div class="name">${esc(it.en)}</div>
           <div class="name-zh">${esc(it.zh)}</div>
+          ${tags}
         </div>${price}
       </div>${den}${dzh}
     </div>`;
@@ -178,7 +179,11 @@ MENU.forEach((sec, i) => {
 // Build the filter bar from the tags actually used by ≥1 item (in TAGS order).
 const used = new Set();
 MENU.forEach(s => (s.items || []).forEach(it => (it.tags || []).forEach(id => used.add(id))));
-const filterTags = TAGS.filter(t => used.has(t.id));
+const seen = new Set();
+const filterTags = [];
+TAGS.forEach(t => {
+  if (used.has(t.id) && !seen.has(t.id)) { seen.add(t.id); filterTags.push(t); }
+});
 const active = new Set();
 
 if (filterTags.length) {
