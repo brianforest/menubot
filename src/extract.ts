@@ -30,6 +30,7 @@ Output schema (return ONLY this JSON, no markdown, no commentary):
           "zh": string,                              // 繁體中文 name (natural culinary wording)
           "p": string,                               // price exactly as printed; "" if none
           "tags": string[],                          // ids of the tags above this item carries; [] if none
+          "xterm": string,                           // see "Explanations" below; "" if not needed
           "den": string,                             // English description if present, else ""
           "dzh": string                              // 繁體中文 translation of the description, else ""
         }
@@ -54,6 +55,17 @@ Tags — IMPORTANT:
   | "highlight" | "other".
 - Only include a tag in "tags" if at least one item carries it.
 - NEVER emit a "popular" tag — that is reserved and populated elsewhere.
+
+Explanations (xterm) — IMPORTANT:
+- Set "xterm" to a lowercase-hyphen slug of an item's canonical name ONLY when a
+  typical international diner likely wouldn't recognise it: regional/cultural
+  specialties (e.g. "laksa", "char-kway-teow"), specialty coffee/tea (e.g.
+  "flat-white", "yuanyang"), or uncommon ingredients/techniques (e.g. "confit",
+  "sous-vide"). Use the canonical concept's slug, not the exact printed name
+  (e.g. an "Iced Flat White" → "flat-white").
+- Do NOT set xterm for common, globally-known items (fried rice, caesar salad,
+  latte, coke). When in doubt, leave it "".
+- Do NOT write the explanation here — only the slug.
 
 Other rules:
 - Capture EVERY item and section; do not summarise or skip.
