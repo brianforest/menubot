@@ -81,17 +81,37 @@ bot.callbackQuery(DONE_DATA, async (ctx) => {
     );
     return;
   }
-  await processBatch(ctx, items);
+  void processBatch(ctx, items);
 });
 
 async function processBatch(ctx: Context, items: PendingItem[]): Promise<void> {
   try {
-    const sources: MenuSource[] = await Promise.all(
+    const results = await Promise.allSettled(
       items.map(async (it) => ({
         kind: it.kind,
         mime: it.mime,
         bytes: await downloadFile(it.fileId),
       })),
+    );
+
+    const failed = results.filter((r) => r.status === "rejected");
+    if (failed.length > 0) {
+      // Don't publish a partial menu — that's exactly the incomplete-menu
+      // outcome this feature exists to prevent. Abort and ask for a resend.
+      console.error(
+        "processBatch download failures:",
+        failed.map((r) => (r as PromiseRejectedResult).reason),
+      );
+      await ctx.reply(
+        `⚠️ 有 ${failed.length} 個檔案下載失敗（可能檔案過大或網路問題），為避免產生不完整的菜單，請重新傳整本菜單。\n` +
+          `${failed.length} file(s) couldn't be downloaded (too large, or a network issue). ` +
+          `To avoid an incomplete menu, please resend the whole menu.`,
+      );
+      return;
+    }
+
+    const sources: MenuSource[] = results.map(
+      (r) => (r as PromiseFulfilledResult<MenuSource>).value,
     );
 
     const total = sources.reduce((n, s) => n + s.bytes.length, 0);
