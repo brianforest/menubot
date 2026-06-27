@@ -102,6 +102,21 @@
   .item .desc { color: var(--muted); font-size: 15px; margin-top: 6px; }
   .item .desc-zh { color: #4a4a4f; font-size: 15px; margin-top: 3px; }
 
+  .opts { margin-top: 8px; }
+  .optg { margin-top: 8px; padding: 8px 10px; background: var(--accent-soft);
+    border-left: 3px solid var(--accent); border-radius: 8px; }
+  .optg:first-child { margin-top: 0; }
+  .optg-label { font-weight: 700; font-size: 15px; }
+  .opt-hint { font-weight: 500; font-size: 13px; color: var(--muted); margin-left: 6px; }
+  .optg-choices { list-style: none; margin: 6px 0 0; padding: 0;
+    display: flex; flex-wrap: wrap; gap: 4px 14px; }
+  .optg-choices li { font-size: 15px; }
+  .opts .ozh { color: var(--accent); }
+  .opts .oen, .opts .ozh { margin-right: 3px; }
+  .opt-price { color: var(--price); font-variant-numeric: tabular-nums; margin-left: 3px; }
+  body.lang-zh .opts .oen { display: none; }
+  body.lang-en .opts .ozh { display: none; }
+
   body.lang-zh .name { display: none; }
   body.lang-zh .desc { display: none; }
   body.lang-zh .name-zh { font-size: 18px; font-weight: 700; color: var(--ink); }
@@ -174,6 +189,21 @@ MENU.forEach((sec, i) => {
     const price = it.p ? `<div class="price">${esc(it.p)}</div>` : "";
     const den = it.den ? `<div class="desc">${esc(it.den)}</div>` : "";
     const dzh = it.dzh ? `<div class="desc-zh">${esc(it.dzh)}</div>` : "";
+    const opts = (it.options && it.options.length)
+      ? `<div class="opts">` + it.options.map(g => {
+          const choices = (g.choices || []).map(c => {
+            const cp = c.p ? `<span class="opt-price">+${esc(c.p)}</span>` : "";
+            return `<li><span class="oen">${esc(c.en)}</span><span class="ozh">${esc(c.zh)}</span>${cp}</li>`;
+          }).join("");
+          if (!choices) return "";
+          const hint = g.kind === "one" ? `<span class="opt-hint">選一 · Choose one</span>`
+                     : g.kind === "any" ? `<span class="opt-hint">可加 · Optional</span>` : "";
+          return `<div class="optg">
+            <div class="optg-label"><span class="oen">${esc(g.en)}</span><span class="ozh">${esc(g.zh)}</span>${hint}</div>
+            <ul class="optg-choices">${choices}</ul>
+          </div>`;
+        }).join("") + `</div>`
+      : "";
     return `<div class="item" data-tags="${esc(ids.join(" "))}">
       <div class="row">
         <div>
@@ -181,7 +211,7 @@ MENU.forEach((sec, i) => {
           <div class="name-zh">${esc(it.zh)}</div>
           ${meta}
         </div>${price}
-      </div>${den}${dzh}
+      </div>${den}${dzh}${opts}
     </div>`;
   }).join("");
 

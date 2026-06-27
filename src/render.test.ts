@@ -42,3 +42,18 @@ test("renderMenu embeds an item's explanation when present", () => {
   assert.ok(html.includes("Espresso with steamed milk."), "explanation EN embedded");
   assert.ok(html.includes("濃縮咖啡加蒸奶。"), "explanation ZH embedded");
 });
+
+test("renderMenu embeds an item's option groups and choices", () => {
+  const html = renderMenu({
+    sections: [{ en: "S", zh: "區", items: [
+      { en: "Noodle Soup", zh: "湯麵", options: [
+        { en: "Broth", zh: "湯底可選", kind: "one", choices: [
+          { en: "Clear broth", zh: "清湯" },
+          { en: "Nyonya Curry Broth", zh: "娘惹咖哩湯" },
+        ] },
+      ] },
+    ] }],
+  });
+  assert.ok(html.includes("湯底可選"), "group label embedded");
+  assert.ok(html.includes("Nyonya Curry Broth"), "choice embedded");
+});
