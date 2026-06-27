@@ -30,6 +30,8 @@ export interface MenuItem {
   xterm?: string;
   /** Filled by enrichMenu from the glossary/explain step. */
   explain?: { en: string; zh: string };
+  /** Configurable option groups (broths, noodles, toppings, sizes, add-ons). */
+  options?: OptionGroup[];
 }
 
 export interface MenuSection {
@@ -78,4 +80,21 @@ export interface ExplainRequest {
   term: string;
   sample_en: string;
   sample_zh: string;
+}
+
+/** One selectable choice within an option group. */
+export interface OptionChoice {
+  en: string;
+  zh: string;
+  /** Extra price for this choice if it is a paid add-on, as printed; else absent. */
+  p?: string;
+}
+
+/** A group of related choices for a configurable item. */
+export interface OptionGroup {
+  en: string;   // group label in English, e.g. "Broth"
+  zh: string;   // group label in 繁體中文, e.g. "湯底可選"
+  /** "one" = pick exactly one; "list" = included components; "any" = optional extras. */
+  kind?: "one" | "list" | "any";
+  choices: OptionChoice[];
 }
