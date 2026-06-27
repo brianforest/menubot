@@ -25,6 +25,11 @@ export interface MenuItem {
   den?: string;
   /** Traditional-Chinese description. */
   dzh?: string;
+  /** Extraction output: canonical lowercase-hyphen slug when this item needs a
+   *  cuisine explanation (e.g. "flat-white"); absent/"" otherwise. */
+  xterm?: string;
+  /** Filled by enrichMenu from the glossary/explain step. */
+  explain?: { en: string; zh: string };
 }
 
 export interface MenuSection {
@@ -56,4 +61,21 @@ export interface MenuSource {
   bytes: Buffer;
   /** MIME type, e.g. "image/jpeg" or "application/pdf". */
   mime: string;
+}
+
+/** A cached glossary entry (one explained culinary term). */
+export interface GlossaryEntry {
+  term: string;        // canonical slug (primary key)
+  display_en: string;  // "Flat White"
+  display_zh: string;  // "馥芮白"
+  explain_en: string;
+  explain_zh: string;
+  category: string;    // "coffee" | "dish" | "ingredient" | "technique" | …
+}
+
+/** One term to be explained, with a sample item name for context. */
+export interface ExplainRequest {
+  term: string;
+  sample_en: string;
+  sample_zh: string;
 }

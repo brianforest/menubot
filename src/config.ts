@@ -47,4 +47,7 @@ export const config = {
       optional("PAGES_BASE_URL") ||
       `https://${owner}.github.io/${repo}`,
   },
+  glossary: {
+    dbPath: optional("GLOSSARY_DB", "data/glossary.db"),
+  },
 } as const;
