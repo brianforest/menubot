@@ -85,7 +85,18 @@
   .item { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; }
   .item .row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
   .item .name { font-weight: 700; font-size: 18px; }
-  .item .tags { display: block; margin-top: 4px; font-size: 15px; letter-spacing: 1px; }
+  .item .meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .item .tags { font-size: 15px; letter-spacing: 1px; }
+  .explain { font: inherit; font-size: 15px; line-height: 1; border: 1px solid var(--line);
+    background: var(--card); border-radius: 999px; padding: 3px 7px; cursor: pointer; }
+  .popover { position: absolute; z-index: 50; max-width: 300px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 15px;
+    line-height: 1.5; box-shadow: 0 8px 24px rgba(0,0,0,.16); }
+  .popover[hidden] { display: none; }
+  .popover .pen { display: block; }
+  .popover .pzh { display: block; color: #4a4a4f; margin-top: 6px; }
+  body.lang-zh .popover .pen { display: none; }
+  body.lang-en .popover .pzh { display: none; }
   .item .name-zh { color: var(--accent); font-weight: 500; font-size: 17px; margin-top: 1px; }
   .item .price { font-weight: 700; color: var(--price); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .item .desc { color: var(--muted); font-size: 15px; margin-top: 6px; }
@@ -155,6 +166,9 @@ MENU.forEach((sec, i) => {
     const ids = it.tags || [];
     const icons = ids.map(t => (TAG_BY_ID[t] && TAG_BY_ID[t].icon) || "").filter(Boolean).join(" ");
     const tags = icons ? `<span class="tags">${icons}</span>` : "";
+    const explain = it.explain
+      ? `<button class="explain" aria-label="explanation" data-en="${esc(it.explain.en)}" data-zh="${esc(it.explain.zh)}">💡</button>`
+      : "";
     const price = it.p ? `<div class="price">${esc(it.p)}</div>` : "";
     const den = it.den ? `<div class="desc">${esc(it.den)}</div>` : "";
     const dzh = it.dzh ? `<div class="desc-zh">${esc(it.dzh)}</div>` : "";
@@ -163,7 +177,7 @@ MENU.forEach((sec, i) => {
         <div>
           <div class="name">${esc(it.en)}</div>
           <div class="name-zh">${esc(it.zh)}</div>
-          ${tags}
+          <div class="meta">${tags}${explain}</div>
         </div>${price}
       </div>${den}${dzh}
     </div>`;
@@ -234,6 +248,25 @@ barEl.addEventListener("click", (e) => {
   applyFilter();
 });
 
+// Explanation popover: tap 💡 to open near the button; tap elsewhere to close.
+const pop = document.getElementById("popover");
+menuEl.addEventListener("click", (e) => {
+  const btn = e.target.closest(".explain");
+  if (!btn) return;
+  e.stopPropagation();
+  pop.innerHTML = `<span class="pen"></span><span class="pzh"></span>`;
+  pop.querySelector(".pen").textContent = btn.getAttribute("data-en") || "";
+  pop.querySelector(".pzh").textContent = btn.getAttribute("data-zh") || "";
+  pop.hidden = false;
+  const r = btn.getBoundingClientRect();
+  const maxLeft = scrollX + document.documentElement.clientWidth - pop.offsetWidth - 12;
+  pop.style.top = (scrollY + r.bottom + 6) + "px";
+  pop.style.left = Math.max(scrollX + 12, Math.min(scrollX + r.left, maxLeft)) + "px";
+});
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".explain") && !e.target.closest("#popover")) pop.hidden = true;
+});
+
 // Language toggle (unchanged behaviour).
 document.querySelectorAll(".lang-toggle button").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -248,5 +281,6 @@ const toTop = document.getElementById("toTop");
 addEventListener("scroll", () => toTop.classList.toggle("show", scrollY > 600), { passive: true });
 toTop.addEventListener("click", () => scrollTo({ top: 0, behavior: "smooth" }));
 </script>
+<div id="popover" class="popover" hidden></div>
 </body>
 </html>

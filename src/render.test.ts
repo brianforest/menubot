@@ -32,3 +32,13 @@ test("renderMenu drops a stray 'popular' tag (reserved for a later phase)", () =
   assert.ok(!html.includes('"id":"popular"'), "popular tag dropped from vocabulary");
   assert.ok(html.includes('"id":"vegetarian"'), "other tags kept");
 });
+
+test("renderMenu embeds an item's explanation when present", () => {
+  const html = renderMenu({
+    sections: [{ en: "S", zh: "區", items: [
+      { en: "Flat White", zh: "馥芮白", explain: { en: "Espresso with steamed milk.", zh: "濃縮咖啡加蒸奶。" } },
+    ] }],
+  });
+  assert.ok(html.includes("Espresso with steamed milk."), "explanation EN embedded");
+  assert.ok(html.includes("濃縮咖啡加蒸奶。"), "explanation ZH embedded");
+});
