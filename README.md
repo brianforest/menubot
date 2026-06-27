@@ -5,12 +5,13 @@ bilingual (English / 繁體中文) web page** published on **GitHub Pages** — 
 replies with a shareable link, perfect for sending to family & friends.
 
 ```
- photo(s) → Telegram → Claude (read + translate) → HTML → GitHub Pages → link
+ photo(s) / PDF → Telegram → [tap Done] → Claude (read + translate) → HTML → GitHub Pages → link
 ```
 
 ## How it works
 
-1. You send one or more menu photos to the bot (a whole menu, multiple pages).
+1. You send a whole menu as any number of photos and/or a PDF, then tap the
+   **✅ Done** button so the bot knows the upload is complete.
 2. Photos are buffered into one batch and read by a Claude vision model, which
    extracts every section & item and translates them to Traditional Chinese
    (names, descriptions, prices, and dietary icons).
