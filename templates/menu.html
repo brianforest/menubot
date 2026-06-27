@@ -149,7 +149,7 @@ const barEl = document.getElementById("filterbar");
 // Render sections + items (items carry data-tags for filtering).
 MENU.forEach((sec, i) => {
   const id = sec.id || ("sec-" + i);
-  navEl.insertAdjacentHTML("beforeend", `<a href="#${id}" data-sec="${id}">${esc(sec.zh || sec.en)}</a>`);
+  navEl.insertAdjacentHTML("beforeend", `<a href="#${esc(id)}" data-sec="${esc(id)}">${esc(sec.zh || sec.en)}</a>`);
 
   const items = (sec.items || []).map(it => {
     const ids = it.tags || [];
@@ -169,7 +169,7 @@ MENU.forEach((sec, i) => {
   }).join("");
 
   const note = sec.note ? `<p class="sec-note">${esc(sec.note)}</p>` : "";
-  menuEl.insertAdjacentHTML("beforeend", `<section id="${id}">
+  menuEl.insertAdjacentHTML("beforeend", `<section id="${esc(id)}">
     <div class="sec-head"><h2>${esc(sec.en)}</h2><span class="zh">${esc(sec.zh)}</span></div>
     ${note}<div class="grid">${items}</div>
   </section>`);
@@ -204,7 +204,7 @@ function applyFilter() {
       if (show) visible++;
     });
     sec.style.display = visible ? "" : "none";
-    const link = navEl.querySelector(`a[data-sec="${sec.id}"]`);
+    const link = navEl.querySelector(`a[data-sec="${CSS.escape(sec.id)}"]`);
     if (link) link.style.display = visible ? "" : "none";
   });
 }
