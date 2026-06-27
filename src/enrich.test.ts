@@ -60,3 +60,15 @@ test("second enrich of the same term is a pure cache hit", async () => {
   await enrichMenu(menuWith("confit"), g, explain, "t");
   assert.equal(calls, 1, "explained once, then cached");
 });
+
+test("a re-slugged explanation is still cached & attached under the requested term", async () => {
+  const g = new FakeGlossary();
+  const out = await enrichMenu(
+    menuWith("char-kway-teow"),
+    g,
+    async () => [entry("char_kway_teow", "a stir-fried noodle dish")], // model echoes a different slug
+    "t",
+  );
+  assert.equal(out.sections[0].items[0].explain?.en, "a stir-fried noodle dish");
+  assert.ok(g.store.has("char-kway-teow"), "stored under the REQUESTED slug for future cache hits");
+});

@@ -30,7 +30,12 @@ bot.use(async (ctx, next) => {
 // can't tell "finished" from "upload stalled", so there is no auto-start. A
 // 30-minute idle safety net only frees memory and notifies; it never processes.
 const store = new BatchStore();
-const glossary = new Glossary(config.glossary.dbPath);
+let glossary: Glossary | null = null;
+try {
+  glossary = new Glossary(config.glossary.dbPath);
+} catch (e) {
+  console.error("Glossary init failed (running without explanations):", e);
+}
 const DONE_DATA = "menu_done";
 const IDLE_EXPIRY_MS = 30 * 60 * 1000;
 // Telegram Bot API caps file download at 20 MB/file; keep the aggregate here too.
@@ -132,10 +137,12 @@ async function processBatch(ctx: Context, items: PendingItem[]): Promise<void> {
     );
     const menu = await extractMenu(sources);
 
-    try {
-      await enrichMenu(menu, glossary, explainTerms, new Date().toISOString());
-    } catch (e) {
-      console.error("enrichMenu failed (publishing without explanations):", e);
+    if (glossary) {
+      try {
+        await enrichMenu(menu, glossary, explainTerms, new Date().toISOString());
+      } catch (e) {
+        console.error("enrichMenu failed (publishing without explanations):", e);
+      }
     }
 
     const name = menu.restaurant?.en || menu.restaurant?.zh || "menu";

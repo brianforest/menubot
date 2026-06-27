@@ -141,6 +141,7 @@
 </div>
 
 <button id="toTop" aria-label="back to top">↑</button>
+<div id="popover" class="popover" hidden></div>
 
 <footer>
   英中對照菜單 · Bilingual Menu — 中文翻譯僅供參考，內容以餐廳原文為準。<br />
@@ -169,6 +170,7 @@ MENU.forEach((sec, i) => {
     const explain = it.explain
       ? `<button class="explain" aria-label="explanation" data-en="${esc(it.explain.en)}" data-zh="${esc(it.explain.zh)}">💡</button>`
       : "";
+    const meta = (tags || explain) ? `<div class="meta">${tags}${explain}</div>` : "";
     const price = it.p ? `<div class="price">${esc(it.p)}</div>` : "";
     const den = it.den ? `<div class="desc">${esc(it.den)}</div>` : "";
     const dzh = it.dzh ? `<div class="desc-zh">${esc(it.dzh)}</div>` : "";
@@ -177,7 +179,7 @@ MENU.forEach((sec, i) => {
         <div>
           <div class="name">${esc(it.en)}</div>
           <div class="name-zh">${esc(it.zh)}</div>
-          <div class="meta">${tags}${explain}</div>
+          ${meta}
         </div>${price}
       </div>${den}${dzh}
     </div>`;
@@ -281,6 +283,5 @@ const toTop = document.getElementById("toTop");
 addEventListener("scroll", () => toTop.classList.toggle("show", scrollY > 600), { passive: true });
 toTop.addEventListener("click", () => scrollTo({ top: 0, behavior: "smooth" }));
 </script>
-<div id="popover" class="popover" hidden></div>
 </body>
 </html>

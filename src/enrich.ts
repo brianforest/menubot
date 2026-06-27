@@ -38,10 +38,16 @@ export async function enrichMenu(
       sample_en: sampleByTerm.get(t)!.en,
       sample_zh: sampleByTerm.get(t)!.zh,
     }));
-    for (const e of await explainFn(reqs)) {
-      glossary.put(e, now);
-      byTerm.set(e.term, e);
-    }
+    const created = await explainFn(reqs);
+    const byReturned = new Map(created.map((e) => [e.term, e]));
+    misses.forEach((t, i) => {
+      const found = byReturned.get(t) ?? created[i];
+      if (found) {
+        const entry: GlossaryEntry = { ...found, term: t }; // key under the REQUESTED slug
+        glossary.put(entry, now);
+        byTerm.set(t, entry);
+      }
+    });
   }
 
   for (const sec of menu.sections) {
