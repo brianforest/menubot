@@ -1,11 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "./config.js";
-import type { Menu } from "./types.js";
+import type { Menu, MenuSource } from "./types.js";
+import { buildContentBlocks } from "./blocks.js";
 
 const client = new Anthropic({ apiKey: config.anthropic.apiKey });
 
 const SYSTEM = `You are a menu digitisation assistant. You are given one or more
-photos of a single restaurant's menu (possibly several pages/sides). Read every
+photos and/or a PDF of a single restaurant's menu (possibly several pages/sides).
+Read every
 section and every item, then return a STRICT JSON object describing the whole
 menu in English with a Traditional-Chinese (繁體中文) translation.
 
@@ -43,18 +45,6 @@ Rules:
 - If a field is unknown, use "" (or [] for "t"); never invent prices.
 - Return valid JSON parseable by JSON.parse. No trailing commas.`;
 
-/** Build an Anthropic image content block from raw bytes. */
-function imageBlock(bytes: Buffer): Anthropic.ImageBlockParam {
-  return {
-    type: "image",
-    source: {
-      type: "base64",
-      media_type: "image/jpeg",
-      data: bytes.toString("base64"),
-    },
-  };
-}
-
 /** Pull the first balanced JSON object out of a string. */
 function parseJson(text: string): Menu {
   const start = text.indexOf("{");
@@ -67,9 +57,9 @@ function parseJson(text: string): Menu {
 
 /**
  * Read menu photos and return a structured, bilingual Menu.
- * @param images JPEG buffers, one per menu photo/page.
+ * @param sources Menu sources (images and/or PDFs).
  */
-export async function extractMenu(images: Buffer[]): Promise<Menu> {
+export async function extractMenu(sources: MenuSource[]): Promise<Menu> {
   // A full multi-page menu can be large; 8k tokens truncated the JSON
   // mid-array. With a generous max_tokens the SDK rejects a non-streaming
   // request ("Streaming is required for operations that may take longer than
@@ -79,21 +69,7 @@ export async function extractMenu(images: Buffer[]): Promise<Menu> {
       model: config.anthropic.model,
       max_tokens: 32000,
       system: SYSTEM,
-      messages: [
-        {
-          role: "user",
-          content: [
-            ...images.map(imageBlock),
-            {
-              type: "text",
-              text:
-                images.length > 1
-                  ? `These ${images.length} photos are pages of one menu. Digitise the whole thing as one JSON object.`
-                  : "Digitise this menu as one JSON object.",
-            },
-          ],
-        },
-      ],
+      messages: [{ role: "user", content: buildContentBlocks(sources) }],
     })
     .finalMessage();
 

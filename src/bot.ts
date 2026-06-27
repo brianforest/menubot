@@ -3,6 +3,7 @@ import { config } from "./config.js";
 import { extractMenu } from "./extract.js";
 import { renderMenu, slugify } from "./render.js";
 import { publishMenu } from "./publish.js";
+import type { MenuSource } from "./types.js";
 
 export const bot = new Bot(config.telegram.token);
 
@@ -59,12 +60,12 @@ bot.on("message:photo", async (ctx) => {
 
 async function processBatch(ctx: Context, fileIds: string[]): Promise<void> {
   try {
-    const images = await Promise.all(fileIds.map((id) => downloadPhoto(id)));
+    const sources = await Promise.all(fileIds.map((id) => downloadPhoto(id)));
 
     await ctx.reply(
-      `🧠 正在辨識與翻譯 ${images.length} 張相片… Digitising ${images.length} photo(s)…`,
+      `🧠 正在辨識與翻譯 ${sources.length} 張相片… Digitising ${sources.length} photo(s)…`,
     );
-    const menu = await extractMenu(images);
+    const menu = await extractMenu(sources);
 
     const name = menu.restaurant?.en || menu.restaurant?.zh || "menu";
     const slug = slugify(name);
@@ -91,13 +92,17 @@ async function processBatch(ctx: Context, fileIds: string[]): Promise<void> {
 }
 
 /** Download a Telegram photo by file_id and return its bytes. */
-async function downloadPhoto(fileId: string): Promise<Buffer> {
+async function downloadPhoto(fileId: string): Promise<MenuSource> {
   const file = await bot.api.getFile(fileId);
   if (!file.file_path) throw new Error("Telegram did not return a file path.");
   const url = `https://api.telegram.org/file/bot${config.telegram.token}/${file.file_path}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to download photo: ${res.status}`);
-  return Buffer.from(await res.arrayBuffer());
+  return {
+    kind: "image",
+    bytes: Buffer.from(await res.arrayBuffer()),
+    mime: "image/jpeg",
+  };
 }
 
 // ── Commands ────────────────────────────────────────────────
