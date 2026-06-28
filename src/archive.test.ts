@@ -22,6 +22,7 @@ test("parseSlug accepts a bare slug and rejects junk", () => {
   assert.equal(parseSlug("  surrey-hills-y9bee "), "surrey-hills-y9bee");
   assert.equal(parseSlug("not a slug!"), null);
   assert.equal(parseSlug(""), null);
+  assert.equal(parseSlug("HELLO-WORLD"), null);
 });
 
 test("extOf maps MIME to a file extension", () => {

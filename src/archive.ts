@@ -62,6 +62,6 @@ export function parseSlug(arg: string): string | null {
   const t = arg.trim();
   const m = t.match(/\/m\/([a-z0-9-]+)/i);
   if (m) return m[1];
-  if (/^[a-z0-9-]+$/i.test(t)) return t;
+  if (/^[a-z0-9-]+$/.test(t)) return t;
   return null;
 }
