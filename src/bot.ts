@@ -171,8 +171,8 @@ async function processBatch(
         hint,
         slug,
         { findImage, download: downloadImage, verify: verifyImage, commit: publishImage },
-        5,
-        Date.now() + 120_000, // overall budget: image finding is slow + best-effort
+        2,
+        Date.now() + 90_000, // overall budget: image finding is slow + best-effort
       );
     } catch (e) {
       console.error("dish images failed (publishing without photos):", e);

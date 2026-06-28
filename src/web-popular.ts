@@ -15,7 +15,11 @@ popular. If you cannot confidently identify the restaurant, return {"popular": [
 
 // web_search server-tool variant for Sonnet 4.6 (dynamic filtering). The SDK
 // types may predate this literal; the runtime accepts it — hence the `as any`.
-const tools = [{ type: "web_search_20260209", name: "web_search", max_uses: 5 }] as any;
+const tools = [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }] as any;
+
+// Cost/time guard: short per-request timeout + no retries so a long web_search
+// loop on an obscure restaurant can't burn credits or hang (a timeout → []).
+const OPTS = { timeout: 45_000, maxRetries: 0 } as const;
 
 /** Find a restaurant's popular items via web search. Returns [] on any failure. */
 export const findPopular: FindPopular = async (restaurant, location, items) => {
@@ -25,24 +29,18 @@ export const findPopular: FindPopular = async (restaurant, location, items) => {
 
   const messages: Anthropic.MessageParam[] = [{ role: "user", content: user }];
   try {
-    let resp = await client.messages.create({
-      model: config.anthropic.model,
-      max_tokens: 2000,
-      system: SYSTEM,
-      tools,
-      messages,
-    });
+    let resp = await client.messages.create(
+      { model: config.anthropic.model, max_tokens: 2000, system: SYSTEM, tools, messages },
+      OPTS,
+    );
     // web_search runs a server-side loop; pause_turn means "resume" — re-send.
     let cont = 0;
     while (resp.stop_reason === "pause_turn" && cont < 6) {
       messages.push({ role: "assistant", content: resp.content });
-      resp = await client.messages.create({
-        model: config.anthropic.model,
-        max_tokens: 2000,
-        system: SYSTEM,
-        tools,
-        messages,
-      });
+      resp = await client.messages.create(
+        { model: config.anthropic.model, max_tokens: 2000, system: SYSTEM, tools, messages },
+        OPTS,
+      );
       cont++;
     }
     const text = resp.content

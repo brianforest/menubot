@@ -13,7 +13,7 @@ export interface ImageDeps {
   commit: (slug: string, fileName: string, bytes: Buffer) => Promise<void>;
 }
 
-const DEFAULT_MAX = 5;
+const DEFAULT_MAX = 2;
 
 /**
  * Best-effort: attach a verified web photo to up to `maxItems` signature/popular

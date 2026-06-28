@@ -5,9 +5,11 @@ import type { ImageDeps } from "./images.js";
 const client = new Anthropic({ apiKey: config.anthropic.apiKey });
 
 // Sonnet 4.6 web tools (dynamic filtering). SDK types may predate the literals; runtime accepts them.
+// web_search only — web_fetch reads whole pages into context (expensive input
+// tokens) and drove runaway cost on obscure restaurants. Image URLs are taken
+// from search results instead; lower yield, far lower cost.
 const tools = [
   { type: "web_search_20260209", name: "web_search", max_uses: 2 },
-  { type: "web_fetch_20260209", name: "web_fetch", max_uses: 1 },
 ] as any;
 
 // Hard wall-clock bounds so a slow web-tool loop on an obscure restaurant can't
@@ -17,10 +19,9 @@ const FIND_OPTS = { timeout: 45_000, maxRetries: 0 } as const;
 const VERIFY_OPTS = { timeout: 30_000, maxRetries: 0 } as const;
 
 const FIND_SYSTEM = `You help find a representative photograph of a specific dish at a
-specific restaurant. Use web_search and web_fetch to locate a DIRECT image URL (ending
-in .jpg/.jpeg/.png/.webp, or an og:image meta URL) that actually shows THIS dish at THIS
-restaurant — prefer the official website or a reputable source; avoid stock photos, logos,
-and unrelated images.
+specific restaurant. Use web_search to locate a DIRECT image URL (ending in
+.jpg/.jpeg/.png/.webp) that actually shows THIS dish at THIS restaurant — prefer the
+official website or a reputable source; avoid stock photos, logos, and unrelated images.
 Return ONLY JSON: {"image_urls": [up to 3 direct image URLs, best first]}.
 If you can't find a suitable image, return {"image_urls": []}.`;
 

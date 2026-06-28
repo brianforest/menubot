@@ -31,7 +31,7 @@ test("addImages targets only signature/popular items, capped at 5", async () => 
   ]);
   const seen: string[] = [];
   const deps = fakeDeps({ findImage: async (_r, en) => { seen.push(en); return ["u"]; } });
-  await addImages(menu, "Rest", "slug-1", deps);
+  await addImages(menu, "Rest", "slug-1", deps, 5); // explicit cap of 5
   assert.deepEqual(seen, ["A", "C", "D", "E", "F"]); // B skipped (untagged), capped at 5 (G excluded)
 });
 
