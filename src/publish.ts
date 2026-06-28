@@ -57,3 +57,28 @@ export async function publishMenu(slug: string, html: string): Promise<PutResult
     commitUrl: data.commit.html_url,
   };
 }
+
+/**
+ * Commit a binary image into a menu's img/ folder so GitHub Pages serves it.
+ * Paths are always new (slug carries a timestamp), so this creates — no SHA needed.
+ */
+export async function publishImage(
+  slug: string,
+  fileName: string,
+  bytes: Buffer,
+): Promise<void> {
+  const { owner, repo, branch, pagesDir } = config.github;
+  const path = `${pagesDir}/m/${slug}/img/${fileName}`;
+  const res = await gh(`/repos/${owner}/${repo}/contents/${encodeURI(path)}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      message: `menu: image ${slug}/${fileName}`,
+      content: bytes.toString("base64"),
+      branch,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`GitHub image publish failed (${res.status}): ${body}`);
+  }
+}
