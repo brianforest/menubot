@@ -2,7 +2,9 @@ import { Bot, InlineKeyboard, type Context } from "grammy";
 import { config } from "./config.js";
 import { extractMenu } from "./extract.js";
 import { renderMenu, slugify } from "./render.js";
-import { publishMenu } from "./publish.js";
+import { publishMenu, publishImage } from "./publish.js";
+import { addImages } from "./images.js";
+import { findImage, downloadImage, verifyImage } from "./web-image.js";
 import { Glossary } from "./glossary.js";
 import { enrichMenu } from "./enrich.js";
 import { explainTerms } from "./explain.js";
@@ -161,8 +163,20 @@ async function processBatch(
 
     const name = menu.restaurant?.en || menu.restaurant?.zh || "menu";
     const slug = slugify(name);
-    const html = renderMenu(menu);
 
+    await ctx.reply("🖼️ 正在找菜品圖… Finding dish photos…");
+    try {
+      await addImages(menu, hint, slug, {
+        findImage,
+        download: downloadImage,
+        verify: verifyImage,
+        commit: publishImage,
+      });
+    } catch (e) {
+      console.error("dish images failed (publishing without photos):", e);
+    }
+
+    const html = renderMenu(menu);
     await ctx.reply("🌐 正在發佈網頁… Publishing…");
     const { url } = await publishMenu(slug, html);
 
