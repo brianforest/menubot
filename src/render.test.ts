@@ -57,3 +57,11 @@ test("renderMenu embeds an item's option groups and choices", () => {
   assert.ok(html.includes("湯底可選"), "group label embedded");
   assert.ok(html.includes("Nyonya Curry Broth"), "choice embedded");
 });
+
+test("renderMenu embeds a dish image path and the template renders it", () => {
+  const html = renderMenu({
+    sections: [{ en: "S", zh: "區", items: [{ en: "A", zh: "甲", img: "img/dish-0.jpg" }] }],
+  });
+  assert.ok(html.includes('"img":"img/dish-0.jpg"'), "img path serialized into MENU_JSON");
+  assert.ok(html.includes('class="dish"'), "template emits the dish <img> element");
+});

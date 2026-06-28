@@ -87,6 +87,7 @@
   .item .name { font-weight: 700; font-size: 18px; }
   .item .meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
   .item .tags { font-size: 15px; letter-spacing: 1px; }
+  .dish { display: block; width: 100%; max-height: 200px; object-fit: cover; border-radius: 10px; margin-top: 8px; }
   .explain { font: inherit; font-size: 15px; line-height: 1; border: 1px solid var(--line);
     background: var(--card); border-radius: 999px; padding: 3px 7px; cursor: pointer; }
   .popover { position: absolute; z-index: 50; max-width: 300px; background: var(--card);
@@ -186,6 +187,7 @@ MENU.forEach((sec, i) => {
       ? `<button class="explain" aria-label="explanation" data-en="${esc(it.explain.en)}" data-zh="${esc(it.explain.zh)}">💡</button>`
       : "";
     const meta = (tags || explain) ? `<div class="meta">${tags}${explain}</div>` : "";
+    const pic = it.img ? `<img class="dish" src="${esc(it.img)}" loading="lazy" alt="">` : "";
     const price = it.p ? `<div class="price">${esc(it.p)}</div>` : "";
     const den = it.den ? `<div class="desc">${esc(it.den)}</div>` : "";
     const dzh = it.dzh ? `<div class="desc-zh">${esc(it.dzh)}</div>` : "";
@@ -211,7 +213,7 @@ MENU.forEach((sec, i) => {
           <div class="name-zh">${esc(it.zh)}</div>
           ${meta}
         </div>${price}
-      </div>${den}${dzh}${opts}
+      </div>${pic}${den}${dzh}${opts}
     </div>`;
   }).join("");
 
