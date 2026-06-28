@@ -93,3 +93,13 @@ test("addImages leaves an item without img when no URL works", async () => {
   await addImages(menu, "Rest", "s", deps);
   assert.equal(menu.sections[0].items[0].img ?? undefined, undefined);
 });
+
+test("addImages stops starting items once the deadline has passed", async () => {
+  const menu = menuWith([{ en: "A", tags: ["signature"] }, { en: "B", tags: ["popular"] }]);
+  let called = 0;
+  const deps = fakeDeps({ findImage: async () => { called++; return ["u"]; } });
+  await addImages(menu, "Rest", "s", deps, 5, Date.now() - 1); // deadline already past
+  assert.equal(called, 0);
+  assert.equal(menu.sections[0].items[0].img ?? undefined, undefined);
+  assert.equal(menu.sections[0].items[1].img ?? undefined, undefined);
+});

@@ -6,9 +6,15 @@ const client = new Anthropic({ apiKey: config.anthropic.apiKey });
 
 // Sonnet 4.6 web tools (dynamic filtering). SDK types may predate the literals; runtime accepts them.
 const tools = [
-  { type: "web_search_20260209", name: "web_search", max_uses: 4 },
-  { type: "web_fetch_20260209", name: "web_fetch", max_uses: 3 },
+  { type: "web_search_20260209", name: "web_search", max_uses: 2 },
+  { type: "web_fetch_20260209", name: "web_fetch", max_uses: 1 },
 ] as any;
+
+// Hard wall-clock bounds so a slow web-tool loop on an obscure restaurant can't
+// hang the publish: short per-request timeout, no retries (a timeout × retries
+// would multiply the wall-clock). A timed-out call throws → we return [] / false.
+const FIND_OPTS = { timeout: 45_000, maxRetries: 0 } as const;
+const VERIFY_OPTS = { timeout: 30_000, maxRetries: 0 } as const;
 
 const FIND_SYSTEM = `You help find a representative photograph of a specific dish at a
 specific restaurant. Use web_search and web_fetch to locate a DIRECT image URL (ending
@@ -24,15 +30,17 @@ export const findImage: ImageDeps["findImage"] = async (restaurant, en, zh) => {
     { role: "user", content: `Restaurant: ${restaurant}\nDish: ${en} / ${zh}` },
   ];
   try {
-    let resp = await client.messages.create({
-      model: config.anthropic.model, max_tokens: 1024, system: FIND_SYSTEM, tools, messages,
-    });
+    let resp = await client.messages.create(
+      { model: config.anthropic.model, max_tokens: 1024, system: FIND_SYSTEM, tools, messages },
+      FIND_OPTS,
+    );
     let cont = 0;
     while (resp.stop_reason === "pause_turn" && cont < 6) {
       messages.push({ role: "assistant", content: resp.content });
-      resp = await client.messages.create({
-        model: config.anthropic.model, max_tokens: 1024, system: FIND_SYSTEM, tools, messages,
-      });
+      resp = await client.messages.create(
+        { model: config.anthropic.model, max_tokens: 1024, system: FIND_SYSTEM, tools, messages },
+        FIND_OPTS,
+      );
       cont++;
     }
     const text = resp.content
@@ -56,6 +64,7 @@ export const downloadImage: ImageDeps["download"] = async (url) => {
     const res = await fetch(url, {
       redirect: "follow",
       headers: { "user-agent": "Mozilla/5.0 (MenuBot image fetch)" },
+      signal: AbortSignal.timeout(15_000), // a hanging image host must not block the publish
     });
     if (!res.ok) return null;
     const ct = res.headers.get("content-type") ?? "";
@@ -86,18 +95,21 @@ const MEDIA: Record<string, "image/jpeg" | "image/png" | "image/webp"> = {
 export const verifyImage: ImageDeps["verify"] = async (bytes, ext, en, zh) => {
   try {
     const media_type = MEDIA[ext] ?? "image/jpeg";
-    const resp = await client.messages.create({
-      model: config.anthropic.model,
-      max_tokens: 200,
-      system: VERIFY_SYSTEM,
-      messages: [{
-        role: "user",
-        content: [
-          { type: "image", source: { type: "base64", media_type, data: bytes.toString("base64") } },
-          { type: "text", text: `Dish: ${en} / ${zh}` },
-        ],
-      }],
-    });
+    const resp = await client.messages.create(
+      {
+        model: config.anthropic.model,
+        max_tokens: 200,
+        system: VERIFY_SYSTEM,
+        messages: [{
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type, data: bytes.toString("base64") } },
+            { type: "text", text: `Dish: ${en} / ${zh}` },
+          ],
+        }],
+      },
+      VERIFY_OPTS,
+    );
     const text = resp.content
       .filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("");
     const s = text.indexOf("{"), e = text.lastIndexOf("}");

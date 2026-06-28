@@ -166,12 +166,14 @@ async function processBatch(
 
     await ctx.reply("🖼️ 正在找菜品圖… Finding dish photos…");
     try {
-      await addImages(menu, hint, slug, {
-        findImage,
-        download: downloadImage,
-        verify: verifyImage,
-        commit: publishImage,
-      });
+      await addImages(
+        menu,
+        hint,
+        slug,
+        { findImage, download: downloadImage, verify: verifyImage, commit: publishImage },
+        5,
+        Date.now() + 120_000, // overall budget: image finding is slow + best-effort
+      );
     } catch (e) {
       console.error("dish images failed (publishing without photos):", e);
     }

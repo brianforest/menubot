@@ -18,7 +18,10 @@ const DEFAULT_MAX = 5;
 /**
  * Best-effort: attach a verified web photo to up to `maxItems` signature/popular
  * items. Resilient — a per-item failure leaves that item without an image; `img`
- * is set only after a successful commit. Mutates and returns the same menu.
+ * is set only after a successful commit. `deadline` (epoch ms) caps total
+ * wall-clock: once passed, no further items are started (image finding is slow
+ * and this is best-effort, so the publish must not be held hostage). Mutates and
+ * returns the same menu.
  */
 export async function addImages(
   menu: Menu,
@@ -26,6 +29,7 @@ export async function addImages(
   slug: string,
   deps: ImageDeps,
   maxItems = DEFAULT_MAX,
+  deadline?: number,
 ): Promise<Menu> {
   const { restaurant } = resolveIdentity(menu, hint);
   if (!restaurant) return menu;
@@ -44,6 +48,7 @@ export async function addImages(
   }
 
   for (const { it, i: idx } of targets) {
+    if (deadline !== undefined && Date.now() > deadline) break;
     try {
       const urls = await deps.findImage(restaurant, it.en, it.zh);
       for (const url of urls) {
