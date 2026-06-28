@@ -32,6 +32,8 @@ export interface MenuItem {
   explain?: { en: string; zh: string };
   /** Configurable option groups (broths, noodles, toppings, sizes, add-ons). */
   options?: OptionGroup[];
+  /** Relative path to a committed dish photo, e.g. "img/dish-3.jpg"; absent if none. */
+  img?: string;
 }
 
 export interface MenuSection {
