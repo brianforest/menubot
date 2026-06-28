@@ -7,6 +7,7 @@ export interface PendingItem {
 
 interface Batch {
   items: PendingItem[];
+  hint?: string;
   lastActivityAt: number;
 }
 
@@ -31,12 +32,24 @@ export class BatchStore {
     return { isNew, count: batch.items.length };
   }
 
-  /** Remove and return a chat's buffered items (on "Done"); undefined if none. */
-  take(chatId: number): PendingItem[] | undefined {
+  /** Store an optional restaurant/location hint on an existing batch.
+   *  Returns true if a non-empty hint was stored (a batch must already exist). */
+  setHint(chatId: number, hint: string, now: number): boolean {
+    const batch = this.batches.get(chatId);
+    if (!batch) return false;
+    const h = hint.trim();
+    if (!h) return false;
+    batch.hint = h;
+    batch.lastActivityAt = now;
+    return true;
+  }
+
+  /** Remove and return a chat's buffered items + hint (on "Done"); undefined if none. */
+  take(chatId: number): { items: PendingItem[]; hint?: string } | undefined {
     const batch = this.batches.get(chatId);
     if (!batch) return undefined;
     this.batches.delete(chatId);
-    return batch.items;
+    return { items: batch.items, hint: batch.hint };
   }
 
   /** Remove batches idle for >= ttlMs; return their chat ids (for notifying). */

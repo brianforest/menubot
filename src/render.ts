@@ -41,10 +41,7 @@ export function renderMenu(menu: Menu): string {
     .replace(/\{\{TITLE_ZH\}\}/g, escapeHtml(titleZh))
     .replace(/\{\{SUBTITLE\}\}/g, escapeHtml(subtitle))
     .replace("{{MENU_JSON}}", JSON.stringify(sections))
-    .replace(
-      "{{TAGS_JSON}}",
-      JSON.stringify((menu.tags ?? []).filter((t) => t.id !== "popular")),
-    );
+    .replace("{{TAGS_JSON}}", JSON.stringify(menu.tags ?? []));
 }
 
 function escapeHtml(s: string): string {

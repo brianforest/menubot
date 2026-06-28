@@ -21,16 +21,16 @@ test("renderMenu defaults tags to [] when the menu has none", () => {
   assert.ok(!html.includes("{{TAGS_JSON}}"));
 });
 
-test("renderMenu drops a stray 'popular' tag (reserved for a later phase)", () => {
+test("renderMenu now keeps the 'popular' tag so 🔥 renders (P4a)", () => {
   const html = renderMenu({
     tags: [
-      { id: "popular", en: "Popular online", zh: "網路人氣", icon: "🔥" },
+      { id: "popular", en: "Popular", zh: "人氣", icon: "🔥", group: "highlight" },
       { id: "vegetarian", en: "Vegetarian", zh: "素", icon: "🌱" },
     ],
-    sections: [{ en: "S", zh: "區", items: [{ en: "A", zh: "甲", tags: ["vegetarian"] }] }],
+    sections: [{ en: "S", zh: "區", items: [{ en: "A", zh: "甲", tags: ["popular"] }] }],
   });
-  assert.ok(!html.includes('"id":"popular"'), "popular tag dropped from vocabulary");
-  assert.ok(html.includes('"id":"vegetarian"'), "other tags kept");
+  assert.ok(html.includes('"id":"popular"'), "popular tag kept in vocabulary");
+  assert.ok(html.includes('"tags":["popular"]'), "item popular tag embedded");
 });
 
 test("renderMenu embeds an item's explanation when present", () => {
