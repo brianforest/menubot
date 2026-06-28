@@ -1,8 +1,9 @@
-import { Bot, InlineKeyboard, type Context } from "grammy";
+import { Bot, InlineKeyboard, InputFile, type Context } from "grammy";
 import { config } from "./config.js";
 import { extractMenu } from "./extract.js";
 import { renderMenu, slugify } from "./render.js";
-import { publishMenu, publishImage } from "./publish.js";
+import { publishMenu, publishImage, waitUntilLive } from "./publish.js";
+import { saveOriginals, readOriginals, listSlugs, parseSlug } from "./archive.js";
 import { addImages } from "./images.js";
 import { findImage, downloadImage, verifyImage } from "./web-image.js";
 import { Glossary } from "./glossary.js";
@@ -184,14 +185,23 @@ async function processBatch(
     }
 
     const html = renderMenu(menu);
-    await ctx.reply("🌐 正在發佈網頁… Publishing…");
+
+    // Archive the originals (filesystem, instant) — best-effort, never blocks publish.
+    try {
+      saveOriginals(config.archive.dir, slug, sources);
+    } catch (e) {
+      console.error("archive save failed:", e);
+    }
+
+    await ctx.reply("🌐 發佈中，確認連結生效… Publishing…");
     const { url } = await publishMenu(slug, html);
+    const live = await waitUntilLive(url);
 
     const count = menu.sections.reduce((n, s) => n + (s.items?.length || 0), 0);
     await ctx.reply(
       `✅ 完成！${menu.sections.length} 個分類、${count} 道餐點。\n` +
-        `Done! Tap to view & share:\n${url}\n\n` +
-        `（GitHub Pages 首次發佈可能需 1–2 分鐘生效）`,
+        `Done! Tap to view & share:\n${url}` +
+        (live ? "" : "\n\n（GitHub Pages 首次發佈可能需 1–2 分鐘生效）"),
       { link_preview_options: { is_disabled: false } },
     );
   } catch (err) {
@@ -237,6 +247,38 @@ bot.command("help", (ctx) =>
       "Send menu photos (one or many) or a PDF, then tap ✅ Done.",
   ),
 );
+
+// Hidden archive retrieval (not in setMyCommands). Returns a menu's original
+// uploads by published URL or slug. Private via the allow-list middleware.
+// Registered before message:text so the text handler can't swallow "/vault …".
+bot.command("vault", async (ctx) => {
+  const arg = (ctx.match ?? "").trim();
+  if (!arg) {
+    const slugs = listSlugs(config.archive.dir, 10);
+    await ctx.reply(
+      slugs.length
+        ? "🗄️ 最近封存：\n" +
+            slugs.map((s) => `• ${s}`).join("\n") +
+            "\n\n用 /vault <slug> 或貼發佈網址調閱原始檔。"
+        : "目前沒有封存的菜單。",
+    );
+    return;
+  }
+  const slug = parseSlug(arg);
+  if (!slug) {
+    await ctx.reply("認不出 slug。請貼發佈網址（…/m/<slug>/）或直接給 slug。");
+    return;
+  }
+  const files = readOriginals(config.archive.dir, slug);
+  if (!files.length) {
+    await ctx.reply(`找不到「${slug}」的原始檔（可能是此功能上線前發佈的）。`);
+    return;
+  }
+  await ctx.reply(`📂 ${slug} 的原始檔（${files.length} 個）`);
+  for (const f of files) {
+    await ctx.replyWithDocument(new InputFile(f.bytes, f.name));
+  }
+});
 
 // Optional restaurant/location hint typed during a collecting session.
 // Registered after the command handlers so /start and /help reach theirs first.
