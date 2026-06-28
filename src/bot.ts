@@ -155,27 +155,32 @@ async function processBatch(
       }
     }
 
-    try {
-      await tagPopular(menu, findPopular, hint);
-    } catch (e) {
-      console.error("popularity tagging failed (publishing without 🔥):", e);
-    }
-
+    // Web enrichment (popularity 🔥 + dish images) is opt-in: it only pays off
+    // for well-known restaurants and yields ~nothing on obscure venues. OFF
+    // unless WEB_ENRICH=on.
     const name = menu.restaurant?.en || menu.restaurant?.zh || "menu";
     const slug = slugify(name);
 
-    await ctx.reply("🖼️ 正在找菜品圖… Finding dish photos…");
-    try {
-      await addImages(
-        menu,
-        hint,
-        slug,
-        { findImage, download: downloadImage, verify: verifyImage, commit: publishImage },
-        2,
-        Date.now() + 90_000, // overall budget: image finding is slow + best-effort
-      );
-    } catch (e) {
-      console.error("dish images failed (publishing without photos):", e);
+    if (config.web.enabled) {
+      try {
+        await tagPopular(menu, findPopular, hint);
+      } catch (e) {
+        console.error("popularity tagging failed (publishing without 🔥):", e);
+      }
+
+      await ctx.reply("🖼️ 正在找菜品圖… Finding dish photos…");
+      try {
+        await addImages(
+          menu,
+          hint,
+          slug,
+          { findImage, download: downloadImage, verify: verifyImage, commit: publishImage },
+          2,
+          Date.now() + 90_000, // overall budget: image finding is slow + best-effort
+        );
+      } catch (e) {
+        console.error("dish images failed (publishing without photos):", e);
+      }
     }
 
     const html = renderMenu(menu);

@@ -50,4 +50,10 @@ export const config = {
   glossary: {
     dbPath: optional("GLOSSARY_DB", "data/glossary.db"),
   },
+  web: {
+    // Web enrichment (popularity 🔥 + dish images) is OFF by default: it only
+    // pays off for well-known restaurants and burns tokens with ~zero yield on
+    // obscure venues. Set WEB_ENRICH=on to enable.
+    enabled: optional("WEB_ENRICH", "off").toLowerCase() === "on",
+  },
 } as const;
