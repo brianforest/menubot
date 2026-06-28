@@ -50,6 +50,9 @@ export const config = {
   glossary: {
     dbPath: optional("GLOSSARY_DB", "data/glossary.db"),
   },
+  archive: {
+    dir: optional("ARCHIVE_DIR", "data/originals"),
+  },
   web: {
     // Web enrichment (popularity 🔥 + dish images) is OFF by default: it only
     // pays off for well-known restaurants and burns tokens with ~zero yield on
