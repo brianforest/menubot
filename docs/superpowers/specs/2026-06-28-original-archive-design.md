@@ -22,6 +22,8 @@ come back as Telegram attachments. No public/hidden web address is needed; the s
 - A hidden `/vault` command returns a menu's originals to the owner in Telegram, looked
   up by either the full published URL or the bare slug; with no argument it lists recent
   archived slugs.
+- The published link is only shown **after it is confirmed live**, so tapping it never
+  hits a GitHub-Pages 404 (the archive save happens first, in the same window).
 - Private by: the command is **not** advertised (kept out of `setMyCommands`) and the
   existing allow-list middleware already restricts the bot to Brian. Archive files are
   git-ignored (never published).
@@ -71,6 +73,26 @@ export function parseSlug(arg: string): string | null;
 the argument (handles a full URL with trailing slash or `#anchor`); else, if the trimmed
 argument is itself slug-shaped (`^[a-z0-9-]+$`), return it; else `null`.
 
+### A2. Wait-until-live helper (`src/publish.ts`)
+
+Add a poll so the link is only revealed once GitHub Pages serves it (network code,
+not unit-tested — same as `publishMenu`/`publishImage`):
+
+```ts
+/** Poll a URL with HEAD until it responds <400 or the timeout elapses.
+ *  Returns true if it went live. Each probe has its own short timeout; failures
+ *  (404, network) are treated as "not live yet" and retried. */
+export async function waitUntilLive(
+  url: string,
+  timeoutMs = 90_000,
+  intervalMs = 3_000,
+): Promise<boolean>;
+```
+
+Loop until `Date.now()` exceeds the deadline: `fetch(url, { method: "HEAD", signal:
+AbortSignal.timeout(5_000) })` inside try/catch; return `true` on `res.ok`; otherwise
+sleep `intervalMs` and retry. Return `false` on timeout.
+
 ### B. Config (`src/config.ts`)
 
 Add an archive directory (default keeps it under the git-ignored `data/`):
@@ -83,18 +105,38 @@ Add an archive directory (default keeps it under the git-ignored `data/`):
 
 ### C. Bot wiring (`src/bot.ts`)
 
-**Save on publish** — in `processBatch`, after `slug` is computed (the sources' bytes are
-already in hand from the download step), archive best-effort:
+**Save, publish, then confirm-live** — replace the current tail of `processBatch`
+(`renderMenu` → `publishMenu` → immediate "Done" reply) with: archive the originals
+(instant, best-effort), publish, then poll until the page is live before revealing the
+link.
 
 ```ts
+    const html = renderMenu(menu);
+
+    // Archive the originals (filesystem, instant) — best-effort, never blocks publish.
     try {
       saveOriginals(config.archive.dir, slug, sources);
     } catch (e) {
       console.error("archive save failed:", e);
     }
+
+    await ctx.reply("🌐 發佈中，確認連結生效… Publishing…");
+    const { url } = await publishMenu(slug, html);
+    const live = await waitUntilLive(url);
+
+    const count = menu.sections.reduce((n, s) => n + (s.items?.length || 0), 0);
+    await ctx.reply(
+      `✅ 完成！${menu.sections.length} 個分類、${count} 道餐點。\n` +
+        `Tap to view & share:\n${url}` +
+        (live ? "" : "\n\n（GitHub Pages 首次發佈可能需 1–2 分鐘生效）"),
+      { link_preview_options: { is_disabled: false } },
+    );
 ```
 
-Archiving must never block publishing; it runs regardless of `WEB_ENRICH`.
+Archiving runs regardless of `WEB_ENRICH`. `processBatch` is already dispatched with
+`void` (P1), so the ≤90 s poll never blocks the bot's long-poller or other chats. When
+the page goes live within the cap, the link is shown clean; on timeout it's shown with
+the existing 1–2 min note rather than withheld.
 
 **Hidden `/vault` command** (registered with the other commands, but **omitted from
 `setMyCommands`** so it isn't surfaced in the UI; the access-control middleware already
@@ -161,8 +203,9 @@ the P4a text-hint handler (which ignores `/`-prefixed text).
   - `readOriginals` on an absent slug returns `[]`.
   - `listSlugs` returns saved slugs newest-first, capped at `limit`.
   - MIME→ext mapping covers jpeg/png/webp/pdf.
-- **`bot.ts` (`/vault` command, `InputFile` sending):** not unit-tested (grammy/Telegram);
-  covered by `npm run typecheck` + VPS acceptance.
+- **`bot.ts` (`/vault` command, `InputFile` sending) and `publish.ts` `waitUntilLive`:**
+  not unit-tested (grammy/Telegram, network/timing); covered by `npm run typecheck` + VPS
+  acceptance.
 - `npm test` stays green (existing 54 + new).
 
 ## Rollout
@@ -172,8 +215,9 @@ opus full-branch final review); typecheck + tests + build green; merge to `main`
 to VPS (`git pull && npm install && npm run build && sudo systemctl restart menubot`).
 
 Acceptance (Brian, live):
-1. Publish a new menu → then `/vault <that published URL>` returns the original photos/PDF
-   as documents in Telegram; compare against the page.
+1. Publish a new menu → the link appears only after it's live and taps without a 404 →
+   then `/vault <that published URL>` returns the original photos/PDF as documents in
+   Telegram; compare against the page.
 2. `/vault` with no argument lists recent slugs; `/vault <bare-slug>` also works; a bogus
    argument and a pre-feature slug each give a friendly message.
 Mark ✅ in memory. With #11 done, the original 11-item expansion is complete (P4 web
