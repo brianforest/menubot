@@ -181,7 +181,7 @@ MENU.forEach((sec, i) => {
 
   const items = (sec.items || []).map(it => {
     const ids = it.tags || [];
-    const icons = ids.map(t => (TAG_BY_ID[t] && TAG_BY_ID[t].icon) || "").filter(Boolean).join(" ");
+    const icons = ids.filter(t => t !== "notable").map(t => (TAG_BY_ID[t] && TAG_BY_ID[t].icon) || "").filter(Boolean).join(" ");
     const tags = icons ? `<span class="tags">${icons}</span>` : "";
     const explain = it.explain
       ? `<button class="explain" aria-label="explanation" data-en="${esc(it.explain.en)}" data-zh="${esc(it.explain.zh)}">💡</button>`

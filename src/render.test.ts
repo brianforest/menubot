@@ -65,3 +65,15 @@ test("renderMenu embeds a dish image path and the template renders it", () => {
   assert.ok(html.includes('"img":"img/dish-0.jpg"'), "img path serialized into MENU_JSON");
   assert.ok(html.includes('class="dish"'), "template emits the dish <img> element");
 });
+
+test("renderMenu surfaces the notable tag and the template excludes it from item icons", () => {
+  const html = renderMenu({
+    tags: [{ id: "notable", en: "Notable", zh: "特色", icon: "💡", group: "highlight" }],
+    sections: [{ en: "S", zh: "區", items: [
+      { en: "A", zh: "甲", tags: ["notable"], explain: { en: "x", zh: "y" } },
+    ] }],
+  });
+  assert.ok(html.includes('"id":"notable"'), "notable tag is in the chip vocabulary");
+  assert.ok(html.includes('"tags":["notable"]'), "item keeps notable in data for filtering");
+  assert.ok(html.includes('t !== "notable"'), "template excludes notable from the item icon row");
+});
