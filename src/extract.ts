@@ -79,7 +79,9 @@ export interface ParallelDeps {
 /**
  * Two-stage extract: Pass-1 outline → contiguous partition → one parallel
  * worker per group (each sees all sources) → deterministic merge. Throws if the
- * outline is empty or any worker fails, so the dispatcher can fall back.
+ * outline is empty, any worker fails, or the merged menu has fewer sections than
+ * the outline spine (completeness guard — erring toward fallback costs latency,
+ * never fidelity).
  */
 export async function extractMenuParallel(
   sources: MenuSource[],
@@ -91,18 +93,45 @@ export async function extractMenuParallel(
   const results = await Promise.all(
     groups.map((g) => deps.extractSections(sources, outline.tags ?? [], g.titles)),
   );
-  return mergeExtract(outline, results);
+  const menu = mergeExtract(outline, results);
+  // Fix 1: completeness guard — merged section count must match the Pass-1 spine.
+  // A short-count menu (e.g. a worker returned [] sections) is worse than a
+  // fallback, so throw here to trigger the dispatcher's single-call safety net.
+  if (menu.sections.length !== outline.sections.length) {
+    throw new Error(
+      `Parallel extract incomplete: ${menu.sections.length}/${outline.sections.length} sections.`,
+    );
+  }
+  return menu;
 }
 
-/** Read menu photos and return a structured, bilingual Menu. Dispatches on
- *  EXTRACT_MODE; parallel mode falls back to the single call on any failure. */
-export async function extractMenu(sources: MenuSource[]): Promise<Menu> {
-  if (config.extract.mode === "parallel") {
+/** Injected dependencies for dispatchExtract (enables unit-testing without the real LLM). */
+export interface DispatchDeps {
+  parallel: typeof extractMenuParallel;
+  single: typeof extractMenuSingle;
+}
+
+/**
+ * Core dispatch logic: try parallel path; fall back to single on any error.
+ * Exported so tests can inject fakes for both paths without touching config.
+ */
+export async function dispatchExtract(
+  sources: MenuSource[],
+  mode: "single" | "parallel",
+  deps: DispatchDeps = { parallel: extractMenuParallel, single: extractMenuSingle },
+): Promise<Menu> {
+  if (mode === "parallel") {
     try {
-      return await extractMenuParallel(sources);
+      return await deps.parallel(sources);
     } catch (e) {
       console.error("Parallel extract failed; falling back to single call:", e);
     }
   }
-  return extractMenuSingle(sources);
+  return deps.single(sources);
+}
+
+/** Read menu photos and return a structured, bilingual Menu. Dispatches on
+ *  EXTRACT_MODE; parallel mode falls back to the single call on any failure. */
+export function extractMenu(sources: MenuSource[]): Promise<Menu> {
+  return dispatchExtract(sources, config.extract.mode);
 }

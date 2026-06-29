@@ -7,6 +7,10 @@ import { firstJsonObject } from "./extract-json.js";
 
 const client = new Anthropic({ apiKey: config.anthropic.apiKey });
 
+// Cost/latency guard: outline is small/fast (< 4k output), so 60 s is generous.
+// No retries — a hung outline call throws immediately into the dispatcher fallback.
+const OPTS = { timeout: 60_000, maxRetries: 0 } as const;
+
 export const OUTLINE_SYSTEM = `You are a menu digitisation assistant. You are given
 one or more photos and/or a PDF of a single menu. Read the WHOLE thing, then return a
 STRICT JSON object describing only the menu's GLOBAL metadata and its SECTION SPINE —
@@ -44,12 +48,15 @@ export function parseOutline(text: string): Outline {
 /** Pass 1: read all sources and return global metadata + the section spine. */
 export async function outlineMenu(sources: MenuSource[]): Promise<Outline> {
   const resp = await client.messages
-    .stream({
-      model: config.anthropic.model,
-      max_tokens: 4000,
-      system: OUTLINE_SYSTEM,
-      messages: [{ role: "user", content: buildContentBlocks(sources) }],
-    })
+    .stream(
+      {
+        model: config.anthropic.model,
+        max_tokens: 4000,
+        system: OUTLINE_SYSTEM,
+        messages: [{ role: "user", content: buildContentBlocks(sources) }],
+      },
+      OPTS,
+    )
     .finalMessage();
   if (resp.stop_reason === "max_tokens") {
     throw new Error("Outline output hit max_tokens; section list incomplete.");

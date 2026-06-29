@@ -9,6 +9,12 @@ import { ITEM_RULES } from "./extract-rules.js";
 
 const client = new Anthropic({ apiKey: config.anthropic.apiKey });
 
+// Cost/latency guard: each worker handles a fraction of the menu (max 8 sections).
+// 180 s is a generous ceiling; if a worker hangs past this, the call throws and
+// the whole Promise.all rejects → dispatcher falls back to the single-call path.
+// No retries — a timed-out call × retries would multiply wall-clock unpredictably.
+const OPTS = { timeout: 180_000, maxRetries: 0 } as const;
+
 const ITEM_SHAPE = `Each item: {
   "en": string, "zh": string, "p": string, "tags": string[], "xterm": string,
   "options": [ { "en": string, "zh": string, "kind": string,
@@ -50,12 +56,15 @@ export async function extractSections(
   titles: SectionTitle[],
 ): Promise<SectionsResult> {
   const resp = await client.messages
-    .stream({
-      model: config.anthropic.model,
-      max_tokens: 32000,
-      system: workerSystem(tags, titles),
-      messages: [{ role: "user", content: buildContentBlocks(sources) }],
-    })
+    .stream(
+      {
+        model: config.anthropic.model,
+        max_tokens: 32000,
+        system: workerSystem(tags, titles),
+        messages: [{ role: "user", content: buildContentBlocks(sources) }],
+      },
+      OPTS,
+    )
     .finalMessage();
   if (resp.stop_reason === "max_tokens") {
     throw new Error("Section worker output hit max_tokens; JSON incomplete.");
