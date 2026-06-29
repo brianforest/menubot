@@ -59,4 +59,10 @@ export const config = {
     // obscure venues. Set WEB_ENRICH=on to enable.
     enabled: optional("WEB_ENRICH", "off").toLowerCase() === "on",
   },
+  debug: {
+    // When on, append a per-stage timing summary (⏱️) to the Telegram reply so a
+    // live test shows where the latency goes without SSHing for logs. Default off
+    // — production UX stays clean. The structured console line logs regardless.
+    timing: optional("DEBUG_TIMING", "off").toLowerCase() === "on",
+  },
 } as const;
