@@ -14,6 +14,16 @@ import type { MenuSource } from "./types.js";
 import { tagPopular } from "./popular.js";
 import { findPopular } from "./web-popular.js";
 import { tagNotable } from "./notable.js";
+import { Timer } from "./timing.js";
+
+/** Count items carrying an explanation slug — the explain workload driver. */
+function countXterms(menu: { sections: { items?: { xterm?: string }[] }[] }): number {
+  let n = 0;
+  for (const sec of menu.sections) {
+    for (const it of sec.items ?? []) if ((it.xterm ?? "").trim()) n++;
+  }
+  return n;
+}
 
 export const bot = new Bot(config.telegram.token);
 
@@ -106,13 +116,16 @@ async function processBatch(
   items: PendingItem[],
   hint?: string,
 ): Promise<void> {
+  const timer = new Timer();
   try {
-    const results = await Promise.allSettled(
-      items.map(async (it) => ({
-        kind: it.kind,
-        mime: it.mime,
-        bytes: await downloadFile(it.fileId),
-      })),
+    const results = await timer.time("download", () =>
+      Promise.allSettled(
+        items.map(async (it) => ({
+          kind: it.kind,
+          mime: it.mime,
+          bytes: await downloadFile(it.fileId),
+        })),
+      ),
     );
 
     const failed = results.filter((r) => r.status === "rejected");
@@ -147,14 +160,16 @@ async function processBatch(
     await ctx.reply(
       `🧠 正在辨識與翻譯 ${sources.length} 個檔案… Digitising ${sources.length} file(s)…`,
     );
-    const menu = await extractMenu(sources);
+    const menu = await timer.time("extract", () => extractMenu(sources));
 
     if (glossary) {
-      try {
-        await enrichMenu(menu, glossary, explainTerms, new Date().toISOString());
-      } catch (e) {
-        console.error("enrichMenu failed (publishing without explanations):", e);
-      }
+      await timer.time("enrich", async () => {
+        try {
+          await enrichMenu(menu, glossary!, explainTerms, new Date().toISOString());
+        } catch (e) {
+          console.error("enrichMenu failed (publishing without explanations):", e);
+        }
+      });
     }
 
     tagNotable(menu);
@@ -197,8 +212,8 @@ async function processBatch(
     }
 
     await ctx.reply("🌐 發佈中，確認連結生效… Publishing…");
-    const { url } = await publishMenu(slug, html);
-    const live = await waitUntilLive(url);
+    const { url } = await timer.time("publish", () => publishMenu(slug, html));
+    const live = await timer.time("waitLive", () => waitUntilLive(url));
 
     const count = menu.sections.reduce((n, s) => n + (s.items?.length || 0), 0);
     await ctx.reply(
@@ -207,6 +222,18 @@ async function processBatch(
         (live ? "" : "\n\n（GitHub Pages 首次發佈可能需 1–2 分鐘生效）"),
       { link_preview_options: { is_disabled: false } },
     );
+
+    const stats =
+      `files=${sources.length} sections=${menu.sections.length} ` +
+      `items=${count} xterms=${countXterms(menu)}`;
+    console.log(
+      `[timing] ${timer.format()} | total ${(timer.total() / 1000).toFixed(1)}s | ${stats}`,
+    );
+    if (config.debug.timing) {
+      await ctx.reply(
+        `⏱️ ${timer.format()}\ntotal ${(timer.total() / 1000).toFixed(0)}s · ${stats}`,
+      );
+    }
   } catch (err) {
     console.error("processBatch failed:", err);
     await ctx.reply(
