@@ -59,6 +59,14 @@ export const config = {
     // obscure venues. Set WEB_ENRICH=on to enable.
     enabled: optional("WEB_ENRICH", "off").toLowerCase() === "on",
   },
+  extract: {
+    // "parallel" runs the two-stage extractor (Pass-1 outline → parallel section
+    // workers → merge), falling back to the single call on any failure. Default
+    // "single" until A/B-verified on a real menu. Set EXTRACT_MODE=parallel.
+    mode: optional("EXTRACT_MODE", "single").toLowerCase() === "parallel"
+      ? "parallel"
+      : "single",
+  },
   debug: {
     // When on, append a per-stage timing summary (⏱️) to the Telegram reply so a
     // live test shows where the latency goes without SSHing for logs. Default off
