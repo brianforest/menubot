@@ -13,6 +13,7 @@ import { BatchStore, type PendingItem } from "./batch.js";
 import type { MenuSource } from "./types.js";
 import { tagPopular } from "./popular.js";
 import { findPopular } from "./web-popular.js";
+import { tagNotable } from "./notable.js";
 
 export const bot = new Bot(config.telegram.token);
 
@@ -155,6 +156,8 @@ async function processBatch(
         console.error("enrichMenu failed (publishing without explanations):", e);
       }
     }
+
+    tagNotable(menu);
 
     // Web enrichment (popularity 🔥 + dish images) is opt-in: it only pays off
     // for well-known restaurants and yields ~nothing on obscure venues. OFF
