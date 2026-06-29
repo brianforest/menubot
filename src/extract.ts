@@ -61,14 +61,18 @@ Tags — IMPORTANT:
 - NEVER emit a "popular" tag — that is reserved and populated elsewhere.
 
 Explanations (xterm) — IMPORTANT:
-- Set "xterm" to a lowercase-hyphen slug of an item's canonical name ONLY when a
-  typical international diner likely wouldn't recognise it: regional/cultural
-  specialties (e.g. "laksa", "char-kway-teow"), specialty coffee/tea (e.g.
-  "flat-white", "yuanyang"), or uncommon ingredients/techniques (e.g. "confit",
-  "sous-vide"). Use the canonical concept's slug, not the exact printed name
-  (e.g. an "Iced Flat White" → "flat-white").
-- Do NOT set xterm for common, globally-known items (fried rice, caesar salad,
-  latte, coke). When in doubt, leave it "".
+- Set "xterm" to a lowercase-hyphen slug of an item's canonical name whenever the item
+  carries a culinary term, technique, ingredient, or place / origin name that a curious
+  diner may not know. Be GENEROUS on foreign / exotic cuisines (Italian, French, Spanish
+  and other Latin-rooted, Turkish, Arabic, Japanese, etc.): flag the dish if ANY notable
+  word in its name is worth knowing. Examples:
+    "salmon-tartare", "buffalo-mozzarella", "spaghetti-bolognese",
+    "fettuccine-lamb-ragout", "linguine-al-pesto", "andaman-prawn-aglio-olio",
+    "laksa", "char-kway-teow", "flat-white", "confit", "sous-vide".
+  Use the dish's canonical slug (not the exact printed casing); ONE slug per item.
+- Still do NOT set xterm for plainly globally-known items whose name has no foreign or
+  unfamiliar term (fried rice, caesar salad, latte, coke, french fries). When the whole
+  name is ordinary, leave it "".
 - Do NOT write the explanation here — only the slug.
 
 Option groups (options) — IMPORTANT:
