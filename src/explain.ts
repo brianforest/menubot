@@ -32,7 +32,9 @@ export async function explainTerms(
   const resp = await client.messages
     .stream({
       model: config.anthropic.model,
-      max_tokens: 4000,
+      // Term-rich menus (e.g. a foreign fine-dining menu) produce many entries;
+      // 4000 truncated the JSON array mid-object, losing the whole menu's 💡.
+      max_tokens: 16000,
       system: SYSTEM,
       messages: [{ role: "user", content: JSON.stringify(reqs) }],
     })
