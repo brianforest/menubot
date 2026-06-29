@@ -12,6 +12,11 @@ const client = new Anthropic({ apiKey: config.anthropic.apiKey });
 
 const SYSTEM = INTRO_SCHEMA + ITEM_RULES; // byte-identical to the original literal
 
+// The single call digitises the whole menu at once and can legitimately run
+// minutes; a generous ceiling bounds a truly-hung request without failing big
+// menus. No retries (a long vision call must not be billed/run twice).
+const SINGLE_OPTS = { timeout: 600_000, maxRetries: 0 } as const;
+
 /** Pull the first balanced JSON object out of a string. */
 function parseJson(text: string): Menu {
   const start = text.indexOf("{");
@@ -32,12 +37,15 @@ export async function extractMenuSingle(sources: MenuSource[]): Promise<Menu> {
   // request ("Streaming is required for operations that may take longer than
   // 10 minutes"), so we stream and collect the final message.
   const resp = await client.messages
-    .stream({
-      model: config.anthropic.model,
-      max_tokens: 32000,
-      system: SYSTEM,
-      messages: [{ role: "user", content: buildContentBlocks(sources) }],
-    })
+    .stream(
+      {
+        model: config.anthropic.model,
+        max_tokens: 32000,
+        system: SYSTEM,
+        messages: [{ role: "user", content: buildContentBlocks(sources) }],
+      },
+      SINGLE_OPTS,
+    )
     .finalMessage();
 
   const text = resp.content
