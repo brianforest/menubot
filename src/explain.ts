@@ -37,25 +37,61 @@ Content for explain_en / explain_zh (2-4 sentences, concise — shown in a small
 Be accurate; never invent specifics you are unsure of. Keep it tight (a popover, not an
 essay). Traditional Chinese only for the _zh fields. Valid JSON, no trailing commas.`;
 
-/** Explain cache-miss terms in one streamed call. Returns [] for empty input
- *  WITHOUT calling the API. */
-export async function explainTerms(
-  reqs: ExplainRequest[],
-): Promise<GlossaryEntry[]> {
+/** Terms per explain call. A term-rich foreign menu can flag ~90 terms; one big
+ *  call serialises their generation (~170s) and risks truncating the JSON array.
+ *  Smaller batches run in parallel (wall-clock ≈ one batch) and each stays well
+ *  under the token ceiling. */
+const BATCH_SIZE = 20;
+
+/** Cost/latency guard per mandate: bound a hung explain call, never retry a
+ *  billed streaming generation. */
+const OPTS = { timeout: 120_000, maxRetries: 0 } as const;
+
+/** One streamed explain call for up to BATCH_SIZE terms. */
+async function explainBatch(reqs: ExplainRequest[]): Promise<GlossaryEntry[]> {
   if (!reqs.length) return [];
   const resp = await client.messages
-    .stream({
-      model: config.anthropic.model,
-      // Term-rich menus (e.g. a foreign fine-dining menu) produce many entries;
-      // 4000 truncated the JSON array mid-object, losing the whole menu's 💡.
-      max_tokens: 16000,
-      system: SYSTEM,
-      messages: [{ role: "user", content: JSON.stringify(reqs) }],
-    })
+    .stream(
+      {
+        model: config.anthropic.model,
+        max_tokens: 16000,
+        system: SYSTEM,
+        messages: [{ role: "user", content: JSON.stringify(reqs) }],
+      },
+      OPTS,
+    )
     .finalMessage();
   const text = resp.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
     .map((b) => b.text)
     .join("");
   return parseExplainResponse(text);
+}
+
+/**
+ * Explain cache-miss terms. Returns [] for empty input WITHOUT calling the API.
+ * For more than `batchSize` terms the work is split into parallel batches; a
+ * batch that fails is skipped (its terms simply get no 💡) rather than sinking
+ * the whole menu's explanations. `batchFn`/`batchSize` are injectable for tests.
+ */
+export async function explainTerms(
+  reqs: ExplainRequest[],
+  batchFn: (reqs: ExplainRequest[]) => Promise<GlossaryEntry[]> = explainBatch,
+  batchSize: number = BATCH_SIZE,
+): Promise<GlossaryEntry[]> {
+  if (!reqs.length) return [];
+  if (reqs.length <= batchSize) return batchFn(reqs);
+
+  const batches: ExplainRequest[][] = [];
+  for (let i = 0; i < reqs.length; i += batchSize) {
+    batches.push(reqs.slice(i, i + batchSize));
+  }
+  const settled = await Promise.allSettled(batches.map((b) => batchFn(b)));
+
+  const out: GlossaryEntry[] = [];
+  settled.forEach((r, i) => {
+    if (r.status === "fulfilled") out.push(...r.value);
+    else console.error(`explain batch ${i} failed (skipped):`, r.reason);
+  });
+  return out;
 }
