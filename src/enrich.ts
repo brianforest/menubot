@@ -2,8 +2,8 @@ import type { Menu, GlossaryEntry, ExplainRequest } from "./types.js";
 
 /** The subset of Glossary that enrichMenu needs (so tests can inject a fake). */
 export interface GlossaryLike {
-  getMany(terms: string[]): Map<string, GlossaryEntry>;
-  put(entry: GlossaryEntry, createdAt: string): void;
+  getMany(terms: string[], version?: string): Map<string, GlossaryEntry>;
+  put(entry: GlossaryEntry, createdAt: string, version?: string): void;
 }
 
 export type ExplainFn = (reqs: ExplainRequest[]) => Promise<GlossaryEntry[]>;
@@ -18,6 +18,7 @@ export async function enrichMenu(
   glossary: GlossaryLike,
   explainFn: ExplainFn,
   now: string,
+  version = "",
 ): Promise<Menu> {
   // distinct xterms + one sample item name per term (for explain context)
   const sampleByTerm = new Map<string, { en: string; zh: string }>();
@@ -30,7 +31,7 @@ export async function enrichMenu(
   const terms = [...sampleByTerm.keys()];
   if (!terms.length) return menu;
 
-  const byTerm = new Map<string, GlossaryEntry>(glossary.getMany(terms));
+  const byTerm = new Map<string, GlossaryEntry>(glossary.getMany(terms, version));
   const misses = terms.filter((t) => !byTerm.has(t));
   if (misses.length) {
     const reqs: ExplainRequest[] = misses.map((t) => ({
@@ -44,7 +45,7 @@ export async function enrichMenu(
       const found = byReturned.get(t) ?? created[i];
       if (found) {
         const entry: GlossaryEntry = { ...found, term: t }; // key under the REQUESTED slug
-        glossary.put(entry, now);
+        glossary.put(entry, now, version);
         byTerm.set(t, entry);
       }
     });

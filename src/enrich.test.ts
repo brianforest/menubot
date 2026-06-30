@@ -72,3 +72,39 @@ test("a re-slugged explanation is still cached & attached under the requested te
   assert.equal(out.sections[0].items[0].explain?.en, "a stir-fried noodle dish");
   assert.ok(g.store.has("char-kway-teow"), "stored under the REQUESTED slug for future cache hits");
 });
+
+// B4: version-aware cache — a stale-version entry must be re-explained.
+class VersionedFakeGlossary implements GlossaryLike {
+  rows = new Map<string, { e: GlossaryEntry; v: string }>();
+  getMany(terms: string[], version = "") {
+    const m = new Map<string, GlossaryEntry>();
+    for (const t of terms) { const r = this.rows.get(t); if (r && r.v === version) m.set(t, r.e); }
+    return m;
+  }
+  put(e: GlossaryEntry, _createdAt: string, version = "") { this.rows.set(e.term, { e, v: version }); }
+}
+
+test("a cached entry under a stale version is re-explained and re-stored under the new version", async () => {
+  const g = new VersionedFakeGlossary();
+  g.rows.set("laksa", { e: entry("laksa", "OLD explanation"), v: "v-old" });
+  let calls = 0;
+  const out = await enrichMenu(
+    menuWith("laksa"), g,
+    async () => { calls++; return [entry("laksa", "NEW explanation")]; },
+    "t", "v-new",
+  );
+  assert.equal(calls, 1, "stale version forced a re-explain");
+  assert.equal(out.sections[0].items[0].explain?.en, "NEW explanation");
+  assert.equal(g.rows.get("laksa")?.v, "v-new", "re-stored under the new version");
+});
+
+test("a cached entry under the current version is a pure hit (no re-explain)", async () => {
+  const g = new VersionedFakeGlossary();
+  g.rows.set("laksa", { e: entry("laksa", "fresh"), v: "v-cur" });
+  let calls = 0;
+  const out = await enrichMenu(
+    menuWith("laksa"), g, async () => { calls++; return []; }, "t", "v-cur",
+  );
+  assert.equal(calls, 0, "current version is a cache hit");
+  assert.equal(out.sections[0].items[0].explain?.en, "fresh");
+});

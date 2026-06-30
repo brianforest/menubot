@@ -3,6 +3,7 @@ import { config } from "./config.js";
 import type { GlossaryEntry, ExplainRequest } from "./types.js";
 import { parseExplainResponse } from "./explain-parse.js";
 import { finalMessageWithDeadline } from "./stream-deadline.js";
+import { explainVersion } from "./explain-version.js";
 
 const client = new Anthropic({ apiKey: config.anthropic.apiKey });
 
@@ -39,6 +40,11 @@ Be accurate; never invent specifics you are unsure of. Keep it tight (a popover,
 essay). Traditional Chinese for the _zh fields, using natural TAIWAN (台灣) wording (e.g.
 鮭魚 not 三文魚, 起司 not 芝士, 義大利麵 not 意大利粉) — not Hong Kong / Cantonese terms.
 Valid JSON, no trailing commas.`;
+
+/** Content version of cached explanations: changes automatically when the
+ *  explain prompt or model changes, so stale cache entries are re-explained on
+ *  next encounter (no manual bump — see explain-version.ts). */
+export const EXPLAIN_VERSION = explainVersion(SYSTEM, config.anthropic.model);
 
 /** Terms per explain call. A term-rich foreign menu can flag ~90 terms; one big
  *  call serialises their generation (~170s) and risks truncating the JSON array.
