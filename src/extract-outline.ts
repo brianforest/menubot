@@ -27,6 +27,11 @@ NOT the individual items. Return ONLY this JSON (no markdown, no commentary):
 Rules:
 - List EVERY section/heading in the exact order it reads across all pages. Titles only —
   do NOT include items. A section continued on a later page is ONE section (list it once).
+- Keep each printed heading EXACTLY as printed, including any "Group – Subtype" prefix:
+  "Whiskey Collections – Scotch" and "Whiskey Collections – Bourbon" are TWO separate
+  sections, each listed with its full heading. Do NOT invent a separate parent section
+  from a shared prefix (no bare "Whiskey Collections" section on its own), and do NOT
+  split one printed heading into a parent + a child.
 - Capture the full tag vocabulary the menu uses (dietary marks, allergen warnings,
   "Highlight"/"Chef's"/"招牌"/"Recommended"). Use these well-known ids + icons when the
   concept matches: vegetarian 🌱 | vegan 🌱 | spicy 🌶️ | pork 🐷 | chicken 🐔 |

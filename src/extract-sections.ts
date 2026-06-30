@@ -37,6 +37,15 @@ TAG VOCABULARY (reference these ids on items; only add a NEW tag to "tags" if a 
 is genuinely absent here, following the id rules below):
 ${JSON.stringify(tags)}
 
+ACCURATE COUNTING — IMPORTANT (you see only a slice of the menu, so be precise):
+- Put each item under EXACTLY ONE section. NEVER list the same item under more than one
+  of your assigned sections — e.g. a whisky belongs only in its specific sub-section
+  ("Scotch"), never ALSO under a broader group heading.
+- A heading that is only a group label for sub-sections carries NO items of its own;
+  the items live under the specific sub-sections.
+- Comma-separated variants printed together on a SINGLE line (e.g. "Martini Dry, Martini
+  Bianco, Martini Rosso") are ONE item — keep them as one entry; do NOT split them.
+
 ${ITEM_RULES}`;
 }
 
