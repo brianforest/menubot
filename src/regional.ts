@@ -29,6 +29,7 @@ export function normalizeMenu(menu: Menu, map: Map<string, string>): Menu {
 
   for (const sec of menu.sections) {
     sec.zh = normalizeRegional(sec.zh, map);
+    sec.note = n(sec.note);
     for (const it of sec.items ?? []) {
       it.zh = normalizeRegional(it.zh, map);
       it.dzh = n(it.dzh);

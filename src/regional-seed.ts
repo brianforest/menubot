@@ -23,7 +23,6 @@ export const REGIONAL_SEED: RegionalVariant[] = [
   { variant: "車厘子", canonical: "櫻桃", region: "hk", note: "cherry" },
   { variant: "士多啤梨", canonical: "草莓", region: "hk", note: "strawberry" },
   { variant: "青口", canonical: "淡菜", region: "hk", note: "mussel" },
-  { variant: "銀鱈魚", canonical: "圓鱈", region: "hk", note: "cod" },
   { variant: "布冧", canonical: "李子", region: "hk", note: "plum" },
   { variant: "西紅柿", canonical: "番茄", region: "cn", note: "tomato; unambiguous" },
 ];
@@ -31,4 +30,5 @@ export const REGIONAL_SEED: RegionalVariant[] = [
 /** Deliberately EXCLUDED ambiguous variants — do NOT add these to the seed:
  *  - 土豆  : Taiwan=peanut, Mainland=potato. Auto-rewrite would mislead.
  *  - 意粉  : short; collision/partial-match risk (covered by 意大利粉 instead).
+ *  - 銀鱈魚→圓鱈 : possible species conflation (sablefish vs toothfish); re-add only with a verified Taiwan source.
  */

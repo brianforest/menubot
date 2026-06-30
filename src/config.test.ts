@@ -9,7 +9,7 @@ process.env.GITHUB_TOKEN ??= "g";
 process.env.GITHUB_OWNER ??= "o";
 process.env.GITHUB_REPO ??= "r";
 
-test("region.enabled defaults to true and is disabled only by REGION_NORMALIZE=off", async () => {
+test("region.enabled defaults to true when REGION_NORMALIZE is unset", async () => {
   const { config } = await import("./config.js");
   // default: REGION_NORMALIZE unset → enabled
   assert.equal(config.region.enabled, true);

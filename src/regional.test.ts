@@ -38,7 +38,7 @@ test("normalizeMenu walks zh fields incl. explain.zh, leaves en/prices alone", (
     tags: [{ id: "x", en: "Cheese", zh: "芝士" }],
     sections: [
       {
-        en: "Mains", zh: "沙律主菜",
+        en: "Mains", zh: "沙律主菜", note: "沙律免費",
         items: [
           {
             en: "Salmon", zh: "三文魚", p: "芝士", den: "fresh 芝士", dzh: "新鮮芝士",
@@ -56,10 +56,12 @@ test("normalizeMenu walks zh fields incl. explain.zh, leaves en/prices alone", (
   assert.equal(menu.tags![0].zh, "起司");
   assert.equal(menu.tags![0].en, "Cheese"); // en untouched
   assert.equal(menu.sections[0].zh, "沙拉主菜");
+  assert.equal(menu.sections[0].note, "沙拉免費");
   const it = menu.sections[0].items[0];
   assert.equal(it.zh, "鮭魚");
   assert.equal(it.en, "Salmon"); // en untouched
   assert.equal(it.p, "芝士"); // price string untouched
+  assert.equal(it.den, "fresh 芝士");
   assert.equal(it.dzh, "新鮮起司");
   assert.equal(it.explain!.zh, "鮭魚很好");
   assert.equal(it.explain!.en, "salmon note"); // en explain untouched

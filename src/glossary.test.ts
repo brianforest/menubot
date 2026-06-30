@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Glossary } from "./glossary.js";
+import { REGIONAL_SEED } from "./regional-seed.js";
 
 const entry = (term: string, ex = "x") => ({
   term, display_en: term, display_zh: term,
@@ -39,8 +40,6 @@ test("alias routes alias->canonical on lookup", () => {
   assert.equal(got.get("flatwhite")?.explain_en, "the canonical one");
   g.close();
 });
-
-import { REGIONAL_SEED } from "./regional-seed.js";
 
 test("getRegionalMap returns the seeded variant→canonical pairs", () => {
   const g = new Glossary(":memory:");
