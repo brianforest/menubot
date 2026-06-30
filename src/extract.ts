@@ -7,6 +7,7 @@ import { outlineMenu } from "./extract-outline.js";
 import { extractSections } from "./extract-sections.js";
 import { partitionSections } from "./extract-partition.js";
 import { mergeExtract } from "./extract-merge.js";
+import { finalMessageWithDeadline } from "./stream-deadline.js";
 
 const client = new Anthropic({ apiKey: config.anthropic.apiKey });
 
@@ -36,8 +37,8 @@ export async function extractMenuSingle(sources: MenuSource[]): Promise<Menu> {
   // mid-array. With a generous max_tokens the SDK rejects a non-streaming
   // request ("Streaming is required for operations that may take longer than
   // 10 minutes"), so we stream and collect the final message.
-  const resp = await client.messages
-    .stream(
+  const resp = await finalMessageWithDeadline(
+    client.messages.stream(
       {
         model: config.anthropic.model,
         max_tokens: 32000,
@@ -45,8 +46,10 @@ export async function extractMenuSingle(sources: MenuSource[]): Promise<Menu> {
         messages: [{ role: "user", content: buildContentBlocks(sources) }],
       },
       SINGLE_OPTS,
-    )
-    .finalMessage();
+    ),
+    SINGLE_OPTS.timeout,
+    "extract",
+  );
 
   const text = resp.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")

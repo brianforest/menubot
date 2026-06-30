@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { config } from "./config.js";
 import type { GlossaryEntry, ExplainRequest } from "./types.js";
 import { parseExplainResponse } from "./explain-parse.js";
+import { finalMessageWithDeadline } from "./stream-deadline.js";
 
 const client = new Anthropic({ apiKey: config.anthropic.apiKey });
 
@@ -52,8 +53,8 @@ const OPTS = { timeout: 120_000, maxRetries: 0 } as const;
 /** One streamed explain call for up to BATCH_SIZE terms. */
 async function explainBatch(reqs: ExplainRequest[]): Promise<GlossaryEntry[]> {
   if (!reqs.length) return [];
-  const resp = await client.messages
-    .stream(
+  const resp = await finalMessageWithDeadline(
+    client.messages.stream(
       {
         model: config.anthropic.model,
         max_tokens: 16000,
@@ -61,8 +62,10 @@ async function explainBatch(reqs: ExplainRequest[]): Promise<GlossaryEntry[]> {
         messages: [{ role: "user", content: JSON.stringify(reqs) }],
       },
       OPTS,
-    )
-    .finalMessage();
+    ),
+    OPTS.timeout,
+    "explain",
+  );
   const text = resp.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
     .map((b) => b.text)
