@@ -35,7 +35,9 @@ Content for explain_en / explain_zh (2-4 sentences, concise — shown in a small
   芝士 vs 起司 for cheese) and explaining it is noise; just skip it.
 
 Be accurate; never invent specifics you are unsure of. Keep it tight (a popover, not an
-essay). Traditional Chinese only for the _zh fields. Valid JSON, no trailing commas.`;
+essay). Traditional Chinese for the _zh fields, using natural TAIWAN (台灣) wording (e.g.
+鮭魚 not 三文魚, 起司 not 芝士, 義大利麵 not 意大利粉) — not Hong Kong / Cantonese terms.
+Valid JSON, no trailing commas.`;
 
 /** Terms per explain call. A term-rich foreign menu can flag ~90 terms; one big
  *  call serialises their generation (~170s) and risks truncating the JSON array.

@@ -109,8 +109,11 @@ Example item with options (the noodle-soup shape):
 Other rules:
 - Capture EVERY item and section; do not summarise or skip.
 - Keep prices as strings exactly as printed (no currency symbol unless printed).
-- Traditional Chinese only (繁體中文), using natural Hong Kong / Taiwan culinary
-  terms. Translate descriptions faithfully but concisely.
+- Traditional Chinese only (繁體中文), using natural TAIWAN (台灣) culinary terms —
+  NOT Hong Kong / Cantonese wording. Prefer the Taiwan form, e.g. 鮭魚 (not 三文魚),
+  起司 (not 芝士), 義大利麵 (not 意大利粉), 鮮奶油 (not 忌廉), 沙拉 (not 沙律),
+  香草 (not 雲呢拿), 番茄 (not 蕃茄/西紅柿), 馬鈴薯 (not 薯仔). Translate
+  descriptions faithfully but concisely.
 - Preserve the original section order as it reads on the menu.
 - If a field is unknown, use "" (or [] for "tags"); never invent prices.
 - Return valid JSON parseable by JSON.parse. No trailing commas.
