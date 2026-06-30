@@ -4,6 +4,7 @@ import type { MenuSource } from "./types.js";
 import type { Outline } from "./extract-merge.js";
 import { buildContentBlocks } from "./blocks.js";
 import { firstJsonObject } from "./extract-json.js";
+import { finalMessageWithDeadline } from "./stream-deadline.js";
 
 const client = new Anthropic({ apiKey: config.anthropic.apiKey });
 
@@ -54,8 +55,8 @@ export function parseOutline(text: string): Outline {
 
 /** Pass 1: read all sources and return global metadata + the section spine. */
 export async function outlineMenu(sources: MenuSource[]): Promise<Outline> {
-  const resp = await client.messages
-    .stream(
+  const resp = await finalMessageWithDeadline(
+    client.messages.stream(
       {
         model: config.anthropic.model,
         max_tokens: 4000,
@@ -63,8 +64,10 @@ export async function outlineMenu(sources: MenuSource[]): Promise<Outline> {
         messages: [{ role: "user", content: buildContentBlocks(sources) }],
       },
       OPTS,
-    )
-    .finalMessage();
+    ),
+    OPTS.timeout,
+    "extract-outline",
+  );
   if (resp.stop_reason === "max_tokens") {
     throw new Error("Outline output hit max_tokens; section list incomplete.");
   }

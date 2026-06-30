@@ -6,6 +6,7 @@ import type { SectionsResult } from "./extract-merge.js";
 import { buildContentBlocks } from "./blocks.js";
 import { firstJsonObject } from "./extract-json.js";
 import { ITEM_RULES } from "./extract-rules.js";
+import { finalMessageWithDeadline } from "./stream-deadline.js";
 
 const client = new Anthropic({ apiKey: config.anthropic.apiKey });
 
@@ -64,8 +65,8 @@ export async function extractSections(
   tags: TagDef[],
   titles: SectionTitle[],
 ): Promise<SectionsResult> {
-  const resp = await client.messages
-    .stream(
+  const resp = await finalMessageWithDeadline(
+    client.messages.stream(
       {
         model: config.anthropic.model,
         max_tokens: 32000,
@@ -73,8 +74,10 @@ export async function extractSections(
         messages: [{ role: "user", content: buildContentBlocks(sources) }],
       },
       OPTS,
-    )
-    .finalMessage();
+    ),
+    OPTS.timeout,
+    "extract-sections",
+  );
   if (resp.stop_reason === "max_tokens") {
     throw new Error("Section worker output hit max_tokens; JSON incomplete.");
   }
