@@ -8,6 +8,7 @@ import { addImages } from "./images.js";
 import { findImage, downloadImage, verifyImage } from "./web-image.js";
 import { Glossary } from "./glossary.js";
 import { enrichMenu } from "./enrich.js";
+import { normalizeMenu } from "./regional.js";
 import { explainTerms } from "./explain.js";
 import { BatchStore, type PendingItem } from "./batch.js";
 import type { MenuSource } from "./types.js";
@@ -200,6 +201,12 @@ async function processBatch(
       } catch (e) {
         console.error("dish images failed (publishing without photos):", e);
       }
+    }
+
+    // Deterministic regional→Taiwan wording normalization (zero API). Runs after
+    // enrich so glossary-injected explanations are normalized too; before render.
+    if (config.region.enabled && glossary) {
+      normalizeMenu(menu, glossary.getRegionalMap());
     }
 
     const html = renderMenu(menu);

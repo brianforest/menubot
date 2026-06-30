@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Glossary } from "./glossary.js";
+import { REGIONAL_SEED } from "./regional-seed.js";
 
 const entry = (term: string, ex = "x") => ({
   term, display_en: term, display_zh: term,
@@ -37,5 +38,25 @@ test("alias routes alias->canonical on lookup", () => {
   g.putAlias("flatwhite", "flat-white");
   const got = g.getMany(["flatwhite"]);
   assert.equal(got.get("flatwhite")?.explain_en, "the canonical one");
+  g.close();
+});
+
+test("getRegionalMap returns the seeded variant→canonical pairs", () => {
+  const g = new Glossary(":memory:");
+  const map = g.getRegionalMap();
+  assert.equal(map.get("芝士"), "起司");
+  assert.equal(map.get("三文魚"), "鮭魚");
+  assert.equal(map.size, REGIONAL_SEED.length);
+  g.close();
+});
+
+test("seed load is idempotent and does not clobber an edited row", () => {
+  const g = new Glossary(":memory:");
+  // simulate a hand-edited row, then re-run the seed by constructing again on
+  // the same db is not possible with :memory:, so assert INSERT OR IGNORE keeps
+  // an existing row: insert a conflicting variant, then reload seed.
+  g.putRegional("芝士", "乳酪"); // override
+  g.seedRegional(); // re-run seed; INSERT OR IGNORE must NOT overwrite
+  assert.equal(g.getRegionalMap().get("芝士"), "乳酪");
   g.close();
 });

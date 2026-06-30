@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import type { GlossaryEntry } from "./types.js";
+import { REGIONAL_SEED } from "./regional-seed.js";
 
 const SELECT_COLS =
   "term, display_en, display_zh, explain_en, explain_zh, category";
@@ -30,7 +31,14 @@ export class Glossary {
         alias TEXT PRIMARY KEY,
         term  TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS regional_variant (
+        variant   TEXT PRIMARY KEY,
+        canonical TEXT NOT NULL,
+        region    TEXT NOT NULL DEFAULT '',
+        note      TEXT NOT NULL DEFAULT ''
+      );
     `);
+    this.seedRegional();
   }
 
   /** Look up many terms (resolving aliases); returns found entries keyed by the
@@ -78,6 +86,40 @@ export class Glossary {
          ON CONFLICT(alias) DO UPDATE SET term = excluded.term`,
       )
       .run(alias, term);
+  }
+
+  /** Idempotently load the code-defined regional seed. INSERT OR IGNORE means a
+   *  row edited directly in the db is never overwritten. */
+  seedRegional(): void {
+    const stmt = this.db.prepare(
+      `INSERT OR IGNORE INTO regional_variant (variant, canonical, region, note)
+       VALUES (?, ?, ?, ?)`,
+    );
+    for (const r of REGIONAL_SEED) {
+      stmt.run(r.variant, r.canonical, r.region, r.note);
+    }
+  }
+
+  /** Upsert a single regional mapping (curation / tests). */
+  putRegional(variant: string, canonical: string, region = "", note = ""): void {
+    this.db
+      .prepare(
+        `INSERT INTO regional_variant (variant, canonical, region, note)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(variant) DO UPDATE SET
+           canonical = excluded.canonical,
+           region    = excluded.region,
+           note      = excluded.note`,
+      )
+      .run(variant, canonical, region, note);
+  }
+
+  /** All regional mappings as variant → canonical. */
+  getRegionalMap(): Map<string, string> {
+    const rows = this.db
+      .prepare("SELECT variant, canonical FROM regional_variant")
+      .all() as { variant: string; canonical: string }[];
+    return new Map(rows.map((r) => [r.variant, r.canonical]));
   }
 
   close(): void {

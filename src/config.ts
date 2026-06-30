@@ -67,6 +67,11 @@ export const config = {
       ? "parallel"
       : "single",
   },
+  region: {
+    // Deterministic regional→Taiwan wording normalization of zh fields. Zero
+    // API, unit-tested; ON by default. Set REGION_NORMALIZE=off to disable.
+    enabled: optional("REGION_NORMALIZE", "on").toLowerCase() !== "off",
+  },
   debug: {
     // When on, append a per-stage timing summary (⏱️) to the Telegram reply so a
     // live test shows where the latency goes without SSHing for logs. Default off
