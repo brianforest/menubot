@@ -211,17 +211,18 @@ async function processBatch(
       console.error("archive save failed:", e);
     }
 
-    await ctx.reply("🌐 發佈中… Publishing…");
+    await ctx.reply("🌐 發佈中，確認連結生效… Publishing…");
     const { url } = await timer.time("publish", () => publishMenu(slug, html));
+    // Block until the page is actually live so the link we reveal never 404s.
+    // (The non-blocking variant saved ~20s but let early taps hit a transient
+    // 404 until GitHub Pages built — not worth it for a shareable link.)
+    const live = await timer.time("waitLive", () => waitUntilLive(url));
 
-    // Reveal the link as soon as it is committed — don't block completion on
-    // GitHub Pages building (that liveness poll used to add ~20-25s of
-    // wall-clock). We confirm liveness in the background and nudge once ready.
     const count = menu.sections.reduce((n, s) => n + (s.items?.length || 0), 0);
     await ctx.reply(
       `✅ 完成！${menu.sections.length} 個分類、${count} 道餐點。\n` +
-        `Done! Tap to view & share:\n${url}\n\n` +
-        "（連結若一時打不開，GitHub Pages 首次發佈約需 1–2 分鐘生效）",
+        `Done! Tap to view & share:\n${url}` +
+        (live ? "" : "\n\n（GitHub Pages 首次發佈可能需 1–2 分鐘生效）"),
       { link_preview_options: { is_disabled: false } },
     );
 
@@ -236,19 +237,6 @@ async function processBatch(
         `⏱️ ${timer.format()}\ntotal ${(timer.total() / 1000).toFixed(0)}s · ${stats}`,
       );
     }
-
-    // Best-effort liveness confirmation, off the critical path.
-    const liveStart = Date.now();
-    void waitUntilLive(url)
-      .then((live) => {
-        console.log(
-          `[timing] waitLive(bg) ${((Date.now() - liveStart) / 1000).toFixed(1)}s live=${live}`,
-        );
-        if (live) {
-          return ctx.reply("✅ 連結已生效，可放心分享。Your link is live.");
-        }
-      })
-      .catch((e) => console.error("waitUntilLive(bg) failed:", e));
   } catch (err) {
     console.error("processBatch failed:", err);
     await ctx.reply(
