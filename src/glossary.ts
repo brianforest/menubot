@@ -25,7 +25,8 @@ export class Glossary {
         explain_en TEXT NOT NULL DEFAULT '',
         explain_zh TEXT NOT NULL DEFAULT '',
         category   TEXT NOT NULL DEFAULT '',
-        created_at TEXT NOT NULL DEFAULT ''
+        created_at TEXT NOT NULL DEFAULT '',
+        version    TEXT NOT NULL DEFAULT ''
       );
       CREATE TABLE IF NOT EXISTS alias (
         alias TEXT PRIMARY KEY,
@@ -38,43 +39,58 @@ export class Glossary {
         note      TEXT NOT NULL DEFAULT ''
       );
     `);
+    this.migrateVersionColumn();
     this.seedRegional();
+  }
+
+  /** Add the `version` column to a pre-B4 glossary table (CREATE TABLE IF NOT
+   *  EXISTS won't alter an existing one). Existing rows default to '' → stale
+   *  under any real version → re-explained lazily on next encounter. */
+  private migrateVersionColumn(): void {
+    const cols = this.db.prepare("PRAGMA table_info(glossary)").all() as { name: string }[];
+    if (!cols.some((c) => c.name === "version")) {
+      this.db.exec("ALTER TABLE glossary ADD COLUMN version TEXT NOT NULL DEFAULT ''");
+    }
   }
 
   /** Look up many terms (resolving aliases); returns found entries keyed by the
    *  REQUESTED term so callers can map item.xterm -> entry directly. */
-  getMany(terms: string[]): Map<string, GlossaryEntry> {
+  getMany(terms: string[], version = ""): Map<string, GlossaryEntry> {
     const out = new Map<string, GlossaryEntry>();
     if (!terms.length) return out;
     const aliasStmt = this.db.prepare("SELECT term FROM alias WHERE alias = ?");
+    // Only a row written under the CURRENT version is a valid hit; a stale row
+    // is treated as a miss so the caller re-explains and overwrites it.
     const getStmt = this.db.prepare(
-      `SELECT ${SELECT_COLS} FROM glossary WHERE term = ?`,
+      `SELECT ${SELECT_COLS} FROM glossary WHERE term = ? AND version = ?`,
     );
     for (const t of terms) {
       const a = aliasStmt.get(t) as { term: string } | undefined;
-      const row = getStmt.get(a ? a.term : t) as GlossaryEntry | undefined;
+      const row = getStmt.get(a ? a.term : t, version) as GlossaryEntry | undefined;
       if (row) out.set(t, row);
     }
     return out;
   }
 
-  /** Insert or update a glossary entry. */
-  put(entry: GlossaryEntry, createdAt: string): void {
+  /** Insert or update a glossary entry, tagged with the content version that
+   *  produced it (so a later version-mismatch lookup re-explains it). */
+  put(entry: GlossaryEntry, createdAt: string, version = ""): void {
     this.db
       .prepare(
         `INSERT INTO glossary
-           (term, display_en, display_zh, explain_en, explain_zh, category, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)
+           (term, display_en, display_zh, explain_en, explain_zh, category, created_at, version)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(term) DO UPDATE SET
            display_en = excluded.display_en,
            display_zh = excluded.display_zh,
            explain_en = excluded.explain_en,
            explain_zh = excluded.explain_zh,
-           category   = excluded.category`,
+           category   = excluded.category,
+           version    = excluded.version`,
       )
       .run(
         entry.term, entry.display_en, entry.display_zh,
-        entry.explain_en, entry.explain_zh, entry.category, createdAt,
+        entry.explain_en, entry.explain_zh, entry.category, createdAt, version,
       );
   }
 

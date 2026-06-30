@@ -2,6 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Glossary } from "./glossary.js";
 import { REGIONAL_SEED } from "./regional-seed.js";
+import { DatabaseSync } from "node:sqlite";
+import { rmSync } from "node:fs";
 
 const entry = (term: string, ex = "x") => ({
   term, display_en: term, display_zh: term,
@@ -59,4 +61,48 @@ test("seed load is idempotent and does not clobber an edited row", () => {
   g.seedRegional(); // re-run seed; INSERT OR IGNORE must NOT overwrite
   assert.equal(g.getRegionalMap().get("芝士"), "乳酪");
   g.close();
+});
+
+test("getMany returns a cached entry only when the version matches", () => {
+  const g = new Glossary(":memory:");
+  g.put(entry("pesto", "basil sauce"), "2026-07-01", "v1");
+  assert.equal(g.getMany(["pesto"], "v1").get("pesto")?.explain_en, "basil sauce");
+  assert.equal(g.getMany(["pesto"], "v2").has("pesto"), false); // stale version → cache miss
+  g.close();
+});
+
+test("re-putting a term under a new version overwrites and becomes the live row", () => {
+  const g = new Glossary(":memory:");
+  g.put(entry("pesto", "old"), "t1", "v1");
+  g.put(entry("pesto", "new"), "t2", "v2");
+  assert.equal(g.getMany(["pesto"], "v2").get("pesto")?.explain_en, "new");
+  assert.equal(g.getMany(["pesto"], "v1").has("pesto"), false); // v1 row is gone (single row per term)
+  g.close();
+});
+
+test("legacy rows (no version) are stale under any real version", () => {
+  const g = new Glossary(":memory:");
+  g.put(entry("aioli", "garlic mayo"), "2026-07-01"); // pre-B4 write: version defaults to ""
+  assert.equal(g.getMany(["aioli"], "abc123").has("aioli"), false); // miss → will be re-explained
+  assert.equal(g.getMany(["aioli"], "").get("aioli")?.explain_en, "garlic mayo"); // legacy-vs-legacy still hits
+  g.close();
+});
+
+test("migrates a pre-B4 glossary table (no version column) without data loss", () => {
+  const path = "/private/tmp/claude-501/-Users-brianforest-Code-menubot/0d8f6d28-7238-4075-8f00-ff909310a80e/scratchpad/migrate-test-" + process.pid + ".db";
+  // Build an OLD-schema glossary table (no version column) + a legacy row.
+  const raw = new DatabaseSync(path);
+  raw.exec(`CREATE TABLE glossary (
+    term TEXT PRIMARY KEY, display_en TEXT, display_zh TEXT,
+    explain_en TEXT, explain_zh TEXT, category TEXT, created_at TEXT
+  );`);
+  raw.prepare("INSERT INTO glossary (term, explain_en) VALUES (?, ?)").run("ragout", "a slow-cooked stew");
+  raw.close();
+
+  // Opening via Glossary must ALTER-add the version column and preserve the row.
+  const g = new Glossary(path);
+  assert.equal(g.getMany(["ragout"], "").get("ragout")?.explain_en, "a slow-cooked stew"); // legacy row intact under ''
+  assert.equal(g.getMany(["ragout"], "v-new").has("ragout"), false); // stale under a real version
+  g.close();
+  rmSync(path, { force: true });
 });

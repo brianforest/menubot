@@ -9,7 +9,7 @@ import { findImage, downloadImage, verifyImage } from "./web-image.js";
 import { Glossary } from "./glossary.js";
 import { enrichMenu } from "./enrich.js";
 import { normalizeMenu } from "./regional.js";
-import { explainTerms } from "./explain.js";
+import { explainTerms, EXPLAIN_VERSION } from "./explain.js";
 import { BatchStore, type PendingItem } from "./batch.js";
 import type { MenuSource } from "./types.js";
 import { tagPopular } from "./popular.js";
@@ -166,7 +166,7 @@ async function processBatch(
     if (glossary) {
       await timer.time("enrich", async () => {
         try {
-          await enrichMenu(menu, glossary!, explainTerms, new Date().toISOString());
+          await enrichMenu(menu, glossary!, explainTerms, new Date().toISOString(), EXPLAIN_VERSION);
         } catch (e) {
           console.error("enrichMenu failed (publishing without explanations):", e);
         }
