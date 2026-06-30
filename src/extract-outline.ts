@@ -39,7 +39,9 @@ Rules:
   Map any "Highlight/Chef's/招牌/Recommended/推薦" marker to "signature" (icon ⭐,
   group "highlight"). For a menu-specific label, mint a stable lowercase-slug id with a
   group of "diet"|"allergen"|"protein"|"highlight"|"other". NEVER emit a "popular" tag.
-- Traditional Chinese (繁體中文) for all _zh fields. Valid JSON, no trailing commas.`;
+- Traditional Chinese (繁體中文) for all _zh fields, using natural TAIWAN (台灣)
+  wording (e.g. 沙拉 not 沙律, 起司 not 芝士) — not Hong Kong / Cantonese terms.
+  Valid JSON, no trailing commas.`;
 
 /** Validate and extract an Outline from the model's text. */
 export function parseOutline(text: string): Outline {
