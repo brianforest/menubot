@@ -1,8 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { extractFromOutline } from "./extract.js";
+import { extractFromOutline, extractMenuAdaptive } from "./extract.js";
 import type { Outline, SectionsResult } from "./extract-merge.js";
 import type { MenuSource } from "./types.js";
+import type { Menu } from "./types.js";
 
 const SRC: MenuSource[] = [];
 const outline = (titles: string[], complex?: boolean): Outline => ({
@@ -29,4 +30,63 @@ test("extractFromOutline throws when the merged section count != outline spine",
       }),
     /incomplete/i,
   );
+});
+
+const SINGLE: Menu = { sections: [{ en: "SINGLE", zh: "單", items: [] }] };
+
+test("adaptive: complex outline → single, workers never run", async () => {
+  let workers = 0;
+  const menu = await extractMenuAdaptive(SRC, {
+    outline: async () => outline(["A", "B"], true),
+    extractSections: async () => {
+      workers++;
+      return sectionsResult(["A"]);
+    },
+    single: async () => SINGLE,
+  });
+  assert.equal(menu.sections[0].en, "SINGLE");
+  assert.equal(workers, 0);
+});
+
+test("adaptive: simple outline → parallel path, outline fetched exactly once", async () => {
+  let outlineCalls = 0;
+  const menu = await extractMenuAdaptive(SRC, {
+    outline: async () => {
+      outlineCalls++;
+      return outline(["A", "B"], false);
+    },
+    extractSections: async (_s, _tags, titles) => sectionsResult(titles.map((t) => t.en)),
+    single: async () => SINGLE,
+  });
+  assert.deepEqual(menu.sections.map((s) => s.en), ["A", "B"]);
+  assert.equal(outlineCalls, 1);
+});
+
+test("adaptive: complex flag absent → single (fail safe)", async () => {
+  const menu = await extractMenuAdaptive(SRC, {
+    outline: async () => outline(["A"]), // complex undefined
+    extractSections: async () => sectionsResult(["A"]),
+    single: async () => SINGLE,
+  });
+  assert.equal(menu.sections[0].en, "SINGLE");
+});
+
+test("adaptive: outline throws → single fallback", async () => {
+  const menu = await extractMenuAdaptive(SRC, {
+    outline: async () => {
+      throw new Error("outline boom");
+    },
+    extractSections: async () => sectionsResult(["A"]),
+    single: async () => SINGLE,
+  });
+  assert.equal(menu.sections[0].en, "SINGLE");
+});
+
+test("adaptive: simple but parallel completeness fails → single fallback", async () => {
+  const menu = await extractMenuAdaptive(SRC, {
+    outline: async () => outline(["A", "B"], false),
+    extractSections: async () => sectionsResult(["A"]), // 1 of 2 → mismatch → throw
+    single: async () => SINGLE,
+  });
+  assert.equal(menu.sections[0].en, "SINGLE");
 });

@@ -128,10 +128,47 @@ export async function extractMenuParallel(
   return extractFromOutline(outline, sources, { extractSections: deps.extractSections });
 }
 
+/** Injected deps for the adaptive dispatcher (enables unit-testing without the LLM). */
+export interface AdaptiveDeps {
+  outline: typeof outlineMenu;
+  extractSections: typeof extractSections;
+  single: typeof extractMenuSingle;
+}
+
+/**
+ * Run the outline once, then pick a path: a structurally-complex menu (offset price
+ * columns, nested spirits tables) takes the proven single call; a simple menu takes the
+ * parallel path, reusing the already-fetched outline (no second outline call). Any
+ * outline failure, a missing/ambiguous `complex` flag, or a parallel completeness miss
+ * all fall back to single.
+ */
+export async function extractMenuAdaptive(
+  sources: MenuSource[],
+  deps: AdaptiveDeps = { outline: outlineMenu, extractSections, single: extractMenuSingle },
+): Promise<Menu> {
+  let outline: Outline;
+  try {
+    outline = await deps.outline(sources);
+  } catch (e) {
+    console.error("Adaptive: outline failed; single fallback:", e);
+    return deps.single(sources);
+  }
+  // Only a definite `complex === false` takes the parallel path; complex or
+  // missing/ambiguous falls back to the safe single call.
+  if (outline.complex !== false) return deps.single(sources);
+  try {
+    return await extractFromOutline(outline, sources, { extractSections: deps.extractSections });
+  } catch (e) {
+    console.error("Adaptive: parallel path failed; single fallback:", e);
+    return deps.single(sources);
+  }
+}
+
 /** Injected dependencies for dispatchExtract (enables unit-testing without the real LLM). */
 export interface DispatchDeps {
   parallel: typeof extractMenuParallel;
   single: typeof extractMenuSingle;
+  adaptive: typeof extractMenuAdaptive;
 }
 
 /**
@@ -141,8 +178,13 @@ export interface DispatchDeps {
 export async function dispatchExtract(
   sources: MenuSource[],
   mode: "single" | "parallel" | "adaptive",
-  deps: DispatchDeps = { parallel: extractMenuParallel, single: extractMenuSingle },
+  deps: DispatchDeps = {
+    parallel: extractMenuParallel,
+    single: extractMenuSingle,
+    adaptive: extractMenuAdaptive,
+  },
 ): Promise<Menu> {
+  if (mode === "adaptive") return deps.adaptive(sources); // handles its own fallback
   if (mode === "parallel") {
     try {
       return await deps.parallel(sources);
