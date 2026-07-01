@@ -9,7 +9,7 @@ translation.
 
 Output schema (return ONLY this JSON, no markdown, no commentary):
 {
-  "restaurant": { "en": string, "zh": string },   // best guess; "" if unknown
+  "restaurant": { "en": string, "zh": string },   // full official name; if a restaurant context is given in the prompt, use its full official name (do NOT shorten to a logo/sign title printed on the menu, e.g. use "Planter's at The Danna Langkawi" not just "Planter's"); else best guess; "" if unknown
   "currency": string,                                // e.g. "SGD"; "" if unknown
   "kind": string,                                    // "food" | "spa" | "service" | "other"; "" if unsure
   "tags": [                                          // the classification labels THIS menu uses

@@ -35,6 +35,9 @@ Content for explain_en / explain_zh (2-4 sentences, concise — shown in a small
 - Explain WHY it is translated a certain way ONLY when there is a real etymology or story
   worth telling. Do NOT justify ordinary translations — regional wording varies (e.g.
   芝士 vs 起司 for cheese) and explaining it is noise; just skip it.
+- When you name the dish in 中文 inside the explanation, reuse the provided sample_zh
+  VERBATIM — do NOT re-transliterate it (e.g. if sample_zh is "馥芮白", write 馥芮白,
+  never 馥列白). The explanation must stay consistent with the name the diner sees.
 
 Be accurate; never invent specifics you are unsure of. Keep it tight (a popover, not an
 essay). Traditional Chinese for the _zh fields, using natural TAIWAN (台灣) wording (e.g.
