@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { normalizeItemLexicon, normalizeMenuLexicon, type LexiconEntry } from "./lexicon.js";
 import type { Menu, MenuItem } from "./types.js";
+import { LEXICON_SEED } from "./lexicon-seed.js";
 
 const ENTRIES: LexiconEntry[] = [
   { enTerm: "waffle", canonical: "格子鬆餅", variants: ["鬆餅華夫", "鬆餅格子餅", "鬆格餅", "窩夫", "華夫餅", "華夫"] },
@@ -63,6 +64,23 @@ test("rewrites dzh, explain.zh, and option/choice zh of a matched item", () => {
   assert.equal(it.explain!.zh, "格子鬆餅是一種鬆餅");
   assert.equal(it.options![0].zh, "格子鬆餅尺寸");
   assert.equal(it.options![0].choices[0].zh, "大格子鬆餅");
+});
+
+test("longest variant wins when one variant is a substring of another (華夫餅 ⊃ 華夫)", () => {
+  const it = item({ en: "Waffle", zh: "華夫餅" });
+  normalizeItemLexicon(it, ENTRIES);
+  assert.equal(it.zh, "格子鬆餅"); // longest-first: 華夫餅→格子鬆餅. short-first would wrongly give 格子鬆餅餅
+});
+
+test("no seed canonical contains one of its own variants (guards re-entrant rewrite)", () => {
+  for (const row of LEXICON_SEED) {
+    for (const v of row.variants) {
+      assert.ok(
+        !row.canonical.includes(v),
+        `${row.enTerm} (${row.locale}): canonical "${row.canonical}" must not contain variant "${v}"`,
+      );
+    }
+  }
 });
 
 test("normalizeMenuLexicon walks all items; empty entries is a no-op", () => {
