@@ -155,8 +155,12 @@ export async function extractMenuAdaptive(
   }
   // Only a definite `complex === false` takes the parallel path; complex or
   // missing/ambiguous falls back to the safe single call.
-  if (outline.complex !== false) return deps.single(sources);
+  if (outline.complex !== false) {
+    console.log(`[extract] adaptive → single (complex=${outline.complex})`);
+    return deps.single(sources);
+  }
   try {
+    console.log("[extract] adaptive → parallel (complex=false)");
     return await extractFromOutline(outline, sources, { extractSections: deps.extractSections });
   } catch (e) {
     console.error("Adaptive: parallel path failed; single fallback:", e);

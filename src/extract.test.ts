@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { extractFromOutline, extractMenuAdaptive } from "./extract.js";
+import { extractFromOutline, extractMenuAdaptive, dispatchExtract } from "./extract.js";
 import type { Outline, SectionsResult } from "./extract-merge.js";
 import type { MenuSource } from "./types.js";
 import type { Menu } from "./types.js";
@@ -88,5 +88,23 @@ test("adaptive: simple but parallel completeness fails → single fallback", asy
     extractSections: async () => sectionsResult(["A"]), // 1 of 2 → mismatch → throw
     single: async () => SINGLE,
   });
+  assert.equal(menu.sections[0].en, "SINGLE");
+});
+
+test("dispatchExtract routes adaptive mode to deps.adaptive", async () => {
+  let called = false;
+  const menu = await dispatchExtract(SRC, "adaptive", {
+    parallel: async () => {
+      throw new Error("parallel should not run in adaptive mode");
+    },
+    single: async () => {
+      throw new Error("single should not run directly in adaptive mode");
+    },
+    adaptive: async () => {
+      called = true;
+      return SINGLE;
+    },
+  });
+  assert.equal(called, true);
   assert.equal(menu.sections[0].en, "SINGLE");
 });
