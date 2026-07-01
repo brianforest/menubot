@@ -14,3 +14,14 @@ test("region.enabled defaults to true when REGION_NORMALIZE is unset", async () 
   // default: REGION_NORMALIZE unset → enabled
   assert.equal(config.region.enabled, true);
 });
+
+import { parseExtractMode } from "./config.js";
+
+test("parseExtractMode maps known modes and defaults unknown to single", () => {
+  assert.equal(parseExtractMode("parallel"), "parallel");
+  assert.equal(parseExtractMode("adaptive"), "adaptive");
+  assert.equal(parseExtractMode("ADAPTIVE"), "adaptive");
+  assert.equal(parseExtractMode("single"), "single");
+  assert.equal(parseExtractMode("garbage"), "single");
+  assert.equal(parseExtractMode(""), "single");
+});

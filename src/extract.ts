@@ -128,7 +128,7 @@ export interface DispatchDeps {
  */
 export async function dispatchExtract(
   sources: MenuSource[],
-  mode: "single" | "parallel",
+  mode: "single" | "parallel" | "adaptive",
   deps: DispatchDeps = { parallel: extractMenuParallel, single: extractMenuSingle },
 ): Promise<Menu> {
   if (mode === "parallel") {
