@@ -40,27 +40,3 @@ export async function publishImage(
 ): Promise<void> {
   await putObject(`/m/${slug}/img/${fileName}`, bytes, "application/octet-stream", deps);
 }
-
-/**
- * Poll a URL with HEAD until it responds <400 or the timeout elapses, so a
- * freshly-published GitHub Pages link is only revealed once it's live (no 404).
- * Each probe has its own 5s timeout; 404 / network errors are treated as
- * "not live yet" and retried. Returns true if it went live.
- */
-export async function waitUntilLive(
-  url: string,
-  timeoutMs = 90_000,
-  intervalMs = 3_000,
-): Promise<boolean> {
-  const deadline = Date.now() + timeoutMs;
-  for (;;) {
-    try {
-      const res = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(5_000) });
-      if (res.ok) return true;
-    } catch {
-      // not live yet — fall through to retry
-    }
-    if (Date.now() >= deadline) return false;
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-}

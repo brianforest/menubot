@@ -48,8 +48,8 @@ test("total() sums all recorded spans", async () => {
 
 test("add() records a pre-measured span", () => {
   const t = new Timer(fakeClock([0]));
-  t.add("waitLive", 18000);
-  assert.deepEqual([...t.spans], [{ label: "waitLive", ms: 18000 }]);
+  t.add("download", 18000);
+  assert.deepEqual([...t.spans], [{ label: "download", ms: 18000 }]);
 });
 
 test("format() renders labels with seconds to one decimal", async () => {

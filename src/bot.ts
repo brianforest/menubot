@@ -3,7 +3,7 @@ import { config } from "./config.js";
 import { buildContext } from "./context.js";
 import { extractMenu } from "./extract.js";
 import { renderMenu, slugify } from "./render.js";
-import { publishMenu, publishImage, waitUntilLive } from "./publish.js";
+import { publishMenu, publishImage } from "./publish.js";
 import { saveOriginals, readOriginals, listSlugs, parseSlug } from "./archive.js";
 import { addImages } from "./images.js";
 import { findImage, downloadImage, verifyImage } from "./web-image.js";
@@ -251,18 +251,13 @@ async function processBatch(
       console.error("archive save failed:", e);
     }
 
-    await ctx.reply("🌐 發佈中，確認連結生效… Publishing…");
+    await ctx.reply("🌐 發佈中… Publishing…");
     const { url } = await timer.time("publish", () => publishMenu(slug, html));
-    // Block until the page is actually live so the link we reveal never 404s.
-    // (The non-blocking variant saved ~20s but let early taps hit a transient
-    // 404 until GitHub Pages built — not worth it for a shareable link.)
-    const live = await timer.time("waitLive", () => waitUntilLive(url));
 
     const count = menu.sections.reduce((n, s) => n + (s.items?.length || 0), 0);
     await ctx.reply(
       `✅ 完成！${menu.sections.length} 個分類、${count} 道餐點。\n` +
-        `Done! Tap to view & share:\n${url}` +
-        (live ? "" : "\n\n（GitHub Pages 首次發佈可能需 1–2 分鐘生效）"),
+        `Done! Tap to view & share:\n${url}`,
       { link_preview_options: { is_disabled: false } },
     );
 
