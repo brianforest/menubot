@@ -161,7 +161,8 @@ async function processBatch(
     }
 
     await ctx.reply(
-      `🧠 正在辨識與翻譯 ${sources.length} 個檔案… Digitising ${sources.length} file(s)…`,
+      `🧠 正在辨識與翻譯 ${sources.length} 個檔案，通常需 3–5 分鐘，請稍候…\n` +
+        `Digitising ${sources.length} file(s) — usually 3–5 min…`,
     );
     // Restaurant/region context from the hint (typed text + resolved map link) —
     // best-effort, never blocks extraction.
@@ -181,6 +182,19 @@ async function processBatch(
         },
       }),
     );
+
+    // Mid-flight progress: real per-menu counts so the long enrich wait shows life.
+    // Best-effort — never blocks the pipeline.
+    const xtermCount = countXterms(menu);
+    const dishCount = menu.sections.reduce((n, s) => n + (s.items?.length || 0), 0);
+    const progressTail =
+      glossary && xtermCount > 0 ? "正在補充解釋…" : "整理與發佈中…";
+    void ctx
+      .reply(
+        `✅ 製作完成：${menu.sections.length} 個分類、${dishCount} 道餐點、${xtermCount} 個特色詞，${progressTail}\n` +
+          `Menu built: ${menu.sections.length} sections, ${dishCount} items, ${xtermCount} highlights…`,
+      )
+      .catch(() => {});
 
     if (glossary) {
       await timer.time("enrich", async () => {
