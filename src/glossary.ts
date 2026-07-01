@@ -3,6 +3,7 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import type { GlossaryEntry } from "./types.js";
 import { REGIONAL_SEED } from "./regional-seed.js";
+import { LEXICON_SEED } from "./lexicon-seed.js";
 
 const SELECT_COLS =
   "term, display_en, display_zh, explain_en, explain_zh, category";
@@ -38,9 +39,18 @@ export class Glossary {
         region    TEXT NOT NULL DEFAULT '',
         note      TEXT NOT NULL DEFAULT ''
       );
+      CREATE TABLE IF NOT EXISTS lexicon (
+        en_term   TEXT NOT NULL,
+        locale    TEXT NOT NULL,
+        canonical TEXT NOT NULL,
+        variants  TEXT NOT NULL DEFAULT '',
+        note      TEXT NOT NULL DEFAULT '',
+        PRIMARY KEY (en_term, locale)
+      );
     `);
     this.migrateVersionColumn();
     this.seedRegional();
+    this.seedLexicon();
   }
 
   /** Add the `version` column to a pre-B4 glossary table (CREATE TABLE IF NOT
@@ -136,6 +146,47 @@ export class Glossary {
       .prepare("SELECT variant, canonical FROM regional_variant")
       .all() as { variant: string; canonical: string }[];
     return new Map(rows.map((r) => [r.variant, r.canonical]));
+  }
+
+  /** Idempotently load the code-defined lexicon seed. Variants are stored
+   *  newline-joined. INSERT OR IGNORE means a hand-edited row is never
+   *  overwritten. */
+  seedLexicon(): void {
+    const stmt = this.db.prepare(
+      `INSERT OR IGNORE INTO lexicon (en_term, locale, canonical, variants, note)
+       VALUES (?, ?, ?, ?, ?)`,
+    );
+    for (const r of LEXICON_SEED) {
+      stmt.run(r.enTerm.toLowerCase(), r.locale, r.canonical, r.variants.join("\n"), r.note);
+    }
+  }
+
+  /** Upsert a single lexicon mapping (curation / tests). */
+  putLexicon(enTerm: string, locale: string, canonical: string, variants: string[], note = ""): void {
+    this.db
+      .prepare(
+        `INSERT INTO lexicon (en_term, locale, canonical, variants, note)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(en_term, locale) DO UPDATE SET
+           canonical = excluded.canonical,
+           variants  = excluded.variants,
+           note      = excluded.note`,
+      )
+      .run(enTerm.toLowerCase(), locale, canonical, variants.join("\n"), note);
+  }
+
+  /** Lexicon entries for one locale, variants split back into arrays. The return
+   *  type is declared inline (structurally identical to lexicon.ts's
+   *  LexiconEntry) so this module has no dependency on the application module. */
+  getLexicon(locale: string): { enTerm: string; canonical: string; variants: string[] }[] {
+    const rows = this.db
+      .prepare("SELECT en_term, canonical, variants FROM lexicon WHERE locale = ?")
+      .all(locale) as { en_term: string; canonical: string; variants: string }[];
+    return rows.map((r) => ({
+      enTerm: r.en_term,
+      canonical: r.canonical,
+      variants: r.variants.split("\n").filter(Boolean),
+    }));
   }
 
   close(): void {
