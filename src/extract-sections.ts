@@ -64,6 +64,7 @@ export async function extractSections(
   sources: MenuSource[],
   tags: TagDef[],
   titles: SectionTitle[],
+  context?: string,
 ): Promise<SectionsResult> {
   const resp = await finalMessageWithDeadline(
     client.messages.stream(
@@ -71,7 +72,7 @@ export async function extractSections(
         model: config.anthropic.model,
         max_tokens: 32000,
         system: workerSystem(tags, titles),
-        messages: [{ role: "user", content: buildContentBlocks(sources) }],
+        messages: [{ role: "user", content: buildContentBlocks(sources, context) }],
       },
       OPTS,
     ),

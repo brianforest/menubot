@@ -108,3 +108,41 @@ test("dispatchExtract routes adaptive mode to deps.adaptive", async () => {
   assert.equal(called, true);
   assert.equal(menu.sections[0].en, "SINGLE");
 });
+
+test("adaptive threads context to the outline and the single path", async () => {
+  const seen: (string | undefined)[] = [];
+  await extractMenuAdaptive(
+    SRC,
+    {
+      outline: async (_s, ctx) => { seen.push(ctx); return outline(["A"], true); },
+      extractSections: async () => sectionsResult(["A"]),
+      single: async (_s, ctx) => { seen.push(ctx); return SINGLE; },
+    },
+    { context: "CTX" },
+  );
+  assert.deepEqual(seen, ["CTX", "CTX"]); // outline got CTX, then single got CTX
+});
+
+test("adaptive fires onRoute single+true on a complex menu", async () => {
+  const calls: [string, boolean | undefined][] = [];
+  await extractMenuAdaptive(
+    SRC,
+    { outline: async () => outline(["A"], true), extractSections: async () => sectionsResult(["A"]), single: async () => SINGLE },
+    { onRoute: (r, c) => calls.push([r, c]) },
+  );
+  assert.deepEqual(calls, [["single", true]]);
+});
+
+test("adaptive fires onRoute parallel+false on a simple menu", async () => {
+  const calls: [string, boolean | undefined][] = [];
+  await extractMenuAdaptive(
+    SRC,
+    {
+      outline: async () => outline(["A", "B"], false),
+      extractSections: async (_s, _t, titles) => sectionsResult(titles.map((t) => t.en)),
+      single: async () => SINGLE,
+    },
+    { onRoute: (r, c) => calls.push([r, c]) },
+  );
+  assert.deepEqual(calls, [["parallel", false]]);
+});
