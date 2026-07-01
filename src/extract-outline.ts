@@ -17,7 +17,7 @@ one or more photos and/or a PDF of a single menu. Read the WHOLE thing, then ret
 STRICT JSON object describing only the menu's GLOBAL metadata and its SECTION SPINE —
 NOT the individual items. Return ONLY this JSON (no markdown, no commentary):
 {
-  "restaurant": { "en": string, "zh": string },   // best guess; "" if unknown
+  "restaurant": { "en": string, "zh": string },   // full official name; if a restaurant context is given in the prompt, use its full official name (do NOT shorten to a logo/sign title printed on the menu, e.g. use "Planter's at The Danna Langkawi" not just "Planter's"); else best guess; "" if unknown
   "currency": string,                                // e.g. "SGD"; "" if unknown
   "kind": string,                                    // "food" | "spa" | "service" | "other"; "" if unsure
   "tags": [                                          // every distinct classification label the menu uses

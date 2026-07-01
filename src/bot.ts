@@ -161,8 +161,8 @@ async function processBatch(
     }
 
     await ctx.reply(
-      `🧠 正在辨識與翻譯 ${sources.length} 個檔案，通常需 3–5 分鐘，請稍候…\n` +
-        `Digitising ${sources.length} file(s) — usually 3–5 min…`,
+      `🧠 正在辨識與翻譯 ${sources.length} 個檔案，通常需 2–5 分鐘，請稍候…\n` +
+        `Digitising ${sources.length} file(s) — usually 2–5 min…`,
     );
     // Restaurant/region context from the hint (typed text + resolved map link) —
     // best-effort, never blocks extraction.

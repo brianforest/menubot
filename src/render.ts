@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { Menu } from "./types.js";
+import { displayCurrency } from "./currency.js";
 
 const templatePath = fileURLToPath(
   new URL("../templates/menu.html", import.meta.url),
@@ -32,7 +33,7 @@ export function renderMenu(menu: Menu): string {
   const currency = menu.currency?.trim();
   const subtitle = [
     "英中對照 · Bilingual",
-    currency ? `價格以 ${currency} 計` : "",
+    currency ? `價格以 ${displayCurrency(currency)} 計` : "",
   ]
     .filter(Boolean)
     .join("  |  ");
