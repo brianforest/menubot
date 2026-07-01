@@ -26,9 +26,6 @@ export function parseExtractMode(raw: string): "single" | "parallel" | "adaptive
   return m === "parallel" || m === "adaptive" ? m : "single";
 }
 
-const owner = required("GITHUB_OWNER");
-const repo = required("GITHUB_REPO");
-
 export const config = {
   telegram: {
     token: required("TELEGRAM_BOT_TOKEN"),
@@ -43,15 +40,9 @@ export const config = {
     apiKey: required("ANTHROPIC_API_KEY"),
     model: optional("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
   },
-  github: {
-    token: required("GITHUB_TOKEN"),
-    owner,
-    repo,
-    branch: optional("GITHUB_BRANCH", "main"),
-    pagesDir: optional("PAGES_DIR", "docs"),
-    baseUrl:
-      optional("PAGES_BASE_URL") ||
-      `https://${owner}.github.io/${repo}`,
+  publish: {
+    baseUrl: required("PUBLISH_BASE_URL").replace(/\/+$/, ""), // no trailing slash → clean /m/<slug>/ URLs
+    secret: required("PUBLISH_SECRET"),
   },
   glossary: {
     dbPath: optional("GLOSSARY_DB", "data/glossary.db"),
