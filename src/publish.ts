@@ -1,86 +1,44 @@
 import { config } from "./config.js";
 
-const API = "https://api.github.com";
-
-interface PutResult {
-  /** Public URL the menu page is served at via GitHub Pages. */
-  url: string;
-  /** Path inside the repo. */
-  path: string;
-  /** The commit that GitHub created. */
-  commitUrl: string;
+interface PublishDeps {
+  fetch: typeof fetch;
 }
 
-async function gh(path: string, init: RequestInit): Promise<Response> {
-  return fetch(API + path, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${config.github.token}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-      "Content-Type": "application/json",
-      ...(init.headers || {}),
-    },
+async function putObject(
+  relPath: string,
+  body: NonNullable<RequestInit["body"]>,
+  contentType: string,
+  deps: PublishDeps,
+): Promise<void> {
+  const res = await deps.fetch(`${config.publish.baseUrl}${relPath}`, {
+    method: "PUT",
+    headers: { authorization: `Bearer ${config.publish.secret}`, "content-type": contentType },
+    body,
   });
-}
-
-/**
- * Commit an HTML page to the configured repo so GitHub Pages serves it.
- * @param slug  url-safe folder name for this menu
- * @param html  full HTML document
- */
-export async function publishMenu(slug: string, html: string): Promise<PutResult> {
-  const { owner, repo, branch, pagesDir, baseUrl } = config.github;
-  const path = `${pagesDir}/m/${slug}/index.html`;
-
-  const res = await gh(
-    `/repos/${owner}/${repo}/contents/${encodeURI(path)}`,
-    {
-      method: "PUT",
-      body: JSON.stringify({
-        message: `menu: publish ${slug}`,
-        content: Buffer.from(html, "utf8").toString("base64"),
-        branch,
-      }),
-    },
-  );
-
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`GitHub publish failed (${res.status}): ${body}`);
+    const detail = await res.text().catch(() => "");
+    throw new Error(`Publish failed (${res.status}): ${detail}`);
   }
-
-  const data = (await res.json()) as { commit: { html_url: string } };
-  return {
-    url: `${baseUrl}/m/${slug}/`,
-    path,
-    commitUrl: data.commit.html_url,
-  };
 }
 
-/**
- * Commit a binary image into a menu's img/ folder so GitHub Pages serves it.
- * Paths are always new (slug carries a timestamp), so this creates — no SHA needed.
- */
+/** PUT the menu HTML to the Worker (backed by R2) and return its live URL. */
+export async function publishMenu(
+  slug: string,
+  html: string,
+  deps: PublishDeps = { fetch },
+): Promise<{ url: string }> {
+  await putObject(`/m/${slug}/index.html`, html, "text/html; charset=utf-8", deps);
+  return { url: `${config.publish.baseUrl}/m/${slug}/` };
+}
+
+/** PUT a dish image into a menu's img/ folder (WEB_ENRICH only). */
 export async function publishImage(
   slug: string,
   fileName: string,
   bytes: Buffer,
+  deps: PublishDeps = { fetch },
 ): Promise<void> {
-  const { owner, repo, branch, pagesDir } = config.github;
-  const path = `${pagesDir}/m/${slug}/img/${fileName}`;
-  const res = await gh(`/repos/${owner}/${repo}/contents/${encodeURI(path)}`, {
-    method: "PUT",
-    body: JSON.stringify({
-      message: `menu: image ${slug}/${fileName}`,
-      content: bytes.toString("base64"),
-      branch,
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`GitHub image publish failed (${res.status}): ${body}`);
-  }
+  await putObject(`/m/${slug}/img/${fileName}`, bytes, "application/octet-stream", deps);
 }
 
 /**

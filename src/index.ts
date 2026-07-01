@@ -10,8 +10,7 @@ async function main() {
   console.log(
     `MenuBot starting…\n` +
       `  model:   ${config.anthropic.model}\n` +
-      `  publish: ${config.github.owner}/${config.github.repo} (${config.github.pagesDir}/m/…)\n` +
-      `  pages:   ${config.github.baseUrl}/m/<slug>/`,
+      `  publish: ${config.publish.baseUrl}/m/<slug>/`,
   );
 
   await bot.start({
