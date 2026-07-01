@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import { Glossary } from "./glossary.js";
 import { REGIONAL_SEED } from "./regional-seed.js";
 import { DatabaseSync } from "node:sqlite";
-import { rmSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { LEXICON_SEED } from "./lexicon-seed.js";
 
 const entry = (term: string, ex = "x") => ({
   term, display_en: term, display_zh: term,
@@ -89,7 +92,8 @@ test("legacy rows (no version) are stale under any real version", () => {
 });
 
 test("migrates a pre-B4 glossary table (no version column) without data loss", () => {
-  const path = "/private/tmp/claude-501/-Users-brianforest-Code-menubot/0d8f6d28-7238-4075-8f00-ff909310a80e/scratchpad/migrate-test-" + process.pid + ".db";
+  const dir = mkdtempSync(join(tmpdir(), "menubot-migrate-"));
+  const path = join(dir, "migrate-test-" + process.pid + ".db");
   // Build an OLD-schema glossary table (no version column) + a legacy row.
   const raw = new DatabaseSync(path);
   raw.exec(`CREATE TABLE glossary (
@@ -104,5 +108,32 @@ test("migrates a pre-B4 glossary table (no version column) without data loss", (
   assert.equal(g.getMany(["ragout"], "").get("ragout")?.explain_en, "a slow-cooked stew"); // legacy row intact under ''
   assert.equal(g.getMany(["ragout"], "v-new").has("ragout"), false); // stale under a real version
   g.close();
-  rmSync(path, { force: true });
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("getLexicon returns zh-TW seed entries with variants split into arrays", () => {
+  const g = new Glossary(":memory:");
+  const entries = g.getLexicon("zh-TW");
+  const waffle = entries.find((e) => e.enTerm === "waffle");
+  assert.ok(waffle, "waffle entry present");
+  assert.equal(waffle!.canonical, "格子鬆餅");
+  assert.ok(waffle!.variants.includes("窩夫"));
+  const zhtw = LEXICON_SEED.filter((r) => r.locale === "zh-TW");
+  assert.equal(entries.length, zhtw.length);
+  g.close();
+});
+
+test("getLexicon of an unseeded locale returns []", () => {
+  const g = new Glossary(":memory:");
+  assert.deepEqual(g.getLexicon("zh-HK"), []);
+  g.close();
+});
+
+test("lexicon seed is idempotent and does not clobber an edited row", () => {
+  const g = new Glossary(":memory:");
+  g.putLexicon("waffle", "zh-TW", "鬆餅", ["窩夫"]); // hand-edit the canonical
+  g.seedLexicon(); // re-run seed; INSERT OR IGNORE must NOT overwrite
+  const waffle = g.getLexicon("zh-TW").find((e) => e.enTerm === "waffle");
+  assert.equal(waffle!.canonical, "鬆餅");
+  g.close();
 });

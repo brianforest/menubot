@@ -25,3 +25,9 @@ test("parseExtractMode maps known modes and defaults unknown to single", () => {
   assert.equal(parseExtractMode("garbage"), "single");
   assert.equal(parseExtractMode(""), "single");
 });
+
+test("lexicon.enabled defaults true and targetLocale defaults zh-TW", async () => {
+  const { config } = await import("./config.js");
+  assert.equal(config.lexicon.enabled, true);
+  assert.equal(config.lexicon.targetLocale, "zh-TW");
+});
