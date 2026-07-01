@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import { Glossary } from "./glossary.js";
 import { REGIONAL_SEED } from "./regional-seed.js";
 import { DatabaseSync } from "node:sqlite";
-import { rmSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const entry = (term: string, ex = "x") => ({
   term, display_en: term, display_zh: term,
@@ -89,7 +91,8 @@ test("legacy rows (no version) are stale under any real version", () => {
 });
 
 test("migrates a pre-B4 glossary table (no version column) without data loss", () => {
-  const path = "/private/tmp/claude-501/-Users-brianforest-Code-menubot/0d8f6d28-7238-4075-8f00-ff909310a80e/scratchpad/migrate-test-" + process.pid + ".db";
+  const dir = mkdtempSync(join(tmpdir(), "menubot-migrate-"));
+  const path = join(dir, "migrate-test-" + process.pid + ".db");
   // Build an OLD-schema glossary table (no version column) + a legacy row.
   const raw = new DatabaseSync(path);
   raw.exec(`CREATE TABLE glossary (
@@ -104,5 +107,5 @@ test("migrates a pre-B4 glossary table (no version column) without data loss", (
   assert.equal(g.getMany(["ragout"], "").get("ragout")?.explain_en, "a slow-cooked stew"); // legacy row intact under ''
   assert.equal(g.getMany(["ragout"], "v-new").has("ragout"), false); // stale under a real version
   g.close();
-  rmSync(path, { force: true });
+  rmSync(dir, { recursive: true, force: true });
 });
