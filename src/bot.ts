@@ -191,8 +191,8 @@ async function processBatch(
       glossary && xtermCount > 0 ? "正在補充解釋…" : "整理與發佈中…";
     void ctx
       .reply(
-        `✅ 製作完成：${menu.sections.length} 個分類、${dishCount} 道餐點、${xtermCount} 個特色詞，${progressTail}\n` +
-          `Menu built: ${menu.sections.length} sections, ${dishCount} items, ${xtermCount} highlights…`,
+        `✅ 製作接近完成：${menu.sections.length} 個分類、${dishCount} 道餐點、${xtermCount} 個特色詞，${progressTail}\n` +
+          `Menu almost ready: ${menu.sections.length} sections, ${dishCount} items, ${xtermCount} highlights…`,
       )
       .catch(() => {});
 
