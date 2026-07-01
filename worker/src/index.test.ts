@@ -32,6 +32,7 @@ test("PUT with the right secret stores, and GET returns it as html", async () =>
   const r = await handleRequest(get("/m/foo/"), env);
   assert.equal(r.status, 200);
   assert.match(r.headers.get("content-type") ?? "", /text\/html/);
+  assert.match(r.headers.get("cache-control") ?? "", /max-age=31536000/);
   assert.equal(await r.text(), "<h1>hi</h1>");
 });
 

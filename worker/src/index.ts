@@ -50,7 +50,12 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
     const obj = await env.BUCKET.get(key);
     if (!obj) return notFound();
     const body = request.method === "HEAD" ? null : await obj.arrayBuffer();
-    return new Response(body, { headers: { "content-type": contentType(key) } });
+    return new Response(body, {
+      headers: {
+        "content-type": contentType(key),
+        "cache-control": "public, max-age=31536000, immutable",
+      },
+    });
   }
 
   if (request.method === "PUT") {

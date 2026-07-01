@@ -41,7 +41,7 @@ export const config = {
     model: optional("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
   },
   publish: {
-    baseUrl: required("PUBLISH_BASE_URL"), // e.g. https://menubot-menus.<acct>.workers.dev
+    baseUrl: required("PUBLISH_BASE_URL").replace(/\/+$/, ""), // no trailing slash → clean /m/<slug>/ URLs
     secret: required("PUBLISH_SECRET"),
   },
   glossary: {
