@@ -23,7 +23,8 @@ NOT the individual items. Return ONLY this JSON (no markdown, no commentary):
   "tags": [                                          // every distinct classification label the menu uses
     { "id": string, "en": string, "zh": string, "icon": string, "group": string }
   ],
-  "sections": [ { "en": string, "zh": string } ]     // EVERY section title, in reading order; titles only
+  "sections": [ { "en": string, "zh": string } ],    // EVERY section title, in reading order; titles only
+  "complex": boolean                                  // see the complexity rule below
 }
 Rules:
 - List EVERY section/heading in the exact order it reads across all pages. Titles only —
@@ -42,6 +43,13 @@ Rules:
   group of "diet"|"allergen"|"protein"|"highlight"|"other". NEVER emit a "popular" tag.
 - Traditional Chinese (繁體中文) for all _zh fields, using natural TAIWAN (台灣)
   wording (e.g. 沙拉 not 沙律, 起司 not 芝士) — not Hong Kong / Cantonese terms.
+- Set "complex": true if ANY part of the menu uses a layout where item-to-price
+  alignment is visually ambiguous — a price column detached or vertically offset from
+  its item rows, a multi-column price grid (e.g. glass/bottle), or nested category
+  tables (spirits lists such as COGNAC/ARMAGNAC/GIN sub-blocks under a floating price
+  column). Set "complex": false ONLY if every section is a simple linear list where
+  each item's price (if any) sits directly beside or below its own name. When in
+  doubt, prefer true.
   Valid JSON, no trailing commas.`;
 
 /** Validate and extract an Outline from the model's text. */
