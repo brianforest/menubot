@@ -62,14 +62,14 @@ export function parseOutline(text: string): Outline {
 }
 
 /** Pass 1: read all sources and return global metadata + the section spine. */
-export async function outlineMenu(sources: MenuSource[]): Promise<Outline> {
+export async function outlineMenu(sources: MenuSource[], context?: string): Promise<Outline> {
   const resp = await finalMessageWithDeadline(
     client.messages.stream(
       {
         model: config.anthropic.model,
         max_tokens: 4000,
         system: OUTLINE_SYSTEM,
-        messages: [{ role: "user", content: buildContentBlocks(sources) }],
+        messages: [{ role: "user", content: buildContentBlocks(sources, context) }],
       },
       OPTS,
     ),

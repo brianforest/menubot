@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildContentBlocks } from "./blocks.js";
+import type { MenuSource } from "./types.js";
 
 test("single image → one image block + text block", () => {
   const blocks = buildContentBlocks([
@@ -53,4 +54,26 @@ test("a single pdf is still described as one menu (multi-page)", () => {
   ]);
   const text = blocks[1] as { text: string };
   assert.match(text.text, /one menu/i);
+});
+
+const img: MenuSource = { kind: "image", mime: "image/jpeg", bytes: Buffer.from("x") };
+const textOf = (blocks: ReturnType<typeof buildContentBlocks>) => {
+  const b = blocks[blocks.length - 1];
+  return b.type === "text" ? b.text : "";
+};
+
+test("buildContentBlocks without context leaves the instruction unchanged", () => {
+  const t = textOf(buildContentBlocks([img]));
+  assert.ok(!t.includes("Restaurant context"));
+});
+
+test("buildContentBlocks appends the context line when provided", () => {
+  const t = textOf(buildContentBlocks([img], "The Terrace, Langkawi"));
+  assert.ok(t.includes("Restaurant context"));
+  assert.ok(t.includes("The Terrace, Langkawi"));
+});
+
+test("buildContentBlocks ignores an empty/whitespace context", () => {
+  const t = textOf(buildContentBlocks([img], "   "));
+  assert.ok(!t.includes("Restaurant context"));
 });

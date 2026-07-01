@@ -1,5 +1,6 @@
 import { Bot, InlineKeyboard, InputFile, type Context } from "grammy";
 import { config } from "./config.js";
+import { buildContext } from "./context.js";
 import { extractMenu } from "./extract.js";
 import { renderMenu, slugify } from "./render.js";
 import { publishMenu, publishImage, waitUntilLive } from "./publish.js";
@@ -62,9 +63,10 @@ const doneKeyboard = new InlineKeyboard().text("✅ 完成並產生菜單 / Done
 
 const COLLECT_MSG =
   "📸 收到。整本菜單可多張照片／PDF 一次傳給我，全部傳完後請按【✅ 完成並產生菜單】。\n" +
-  "（可選）再傳一則文字告訴我店名／地點，或貼 Google 地圖連結，辨識會更準。\n" +
-  "Send all the pages (photos and/or a PDF); optionally also send the restaurant " +
-  "name / location or a Google Maps link. Tap ✅ Done when finished.";
+  "（強烈建議）貼上這家餐廳的 Google 地圖連結，我會據此判斷菜系、地區與幣別，辨識最準；\n" +
+  "若不方便，至少用一則文字告訴我店名。\n" +
+  "Send all pages (photos and/or a PDF). Best results: paste the restaurant's Google Maps " +
+  "link (or at least type its name). Tap ✅ Done when finished.";
 const EXPIRY_MSG =
   "📭 這批等待過久已自動清空，請重新傳整本菜單。\n" +
   "This session expired after a long pause — please resend the menu.";
@@ -161,7 +163,24 @@ async function processBatch(
     await ctx.reply(
       `🧠 正在辨識與翻譯 ${sources.length} 個檔案… Digitising ${sources.length} file(s)…`,
     );
-    const menu = await timer.time("extract", () => extractMenu(sources));
+    // Restaurant/region context from the hint (typed text + resolved map link) —
+    // best-effort, never blocks extraction.
+    const context = await buildContext(hint).catch(() => null);
+    const menu = await timer.time("extract", () =>
+      extractMenu(sources, {
+        context: context ?? undefined,
+        onRoute: (route, complex) => {
+          if (route === "single" && complex === true) {
+            void ctx
+              .reply(
+                "🕐 此菜單版面較複雜（密集價格表），為確保價格正確改用完整辨識，約需 3–4 分鐘，請稍候。\n" +
+                  "This menu has a complex layout — using full recognition for price accuracy (~3–4 min).",
+              )
+              .catch(() => {});
+          }
+        },
+      }),
+    );
 
     if (glossary) {
       await timer.time("enrich", async () => {

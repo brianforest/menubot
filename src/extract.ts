@@ -32,7 +32,7 @@ function parseJson(text: string): Menu {
  * Read menu photos and return a structured, bilingual Menu (single-call path).
  * @param sources Menu sources (images and/or PDFs).
  */
-export async function extractMenuSingle(sources: MenuSource[]): Promise<Menu> {
+export async function extractMenuSingle(sources: MenuSource[], context?: string): Promise<Menu> {
   // A full multi-page menu can be large; 8k tokens truncated the JSON
   // mid-array. With a generous max_tokens the SDK rejects a non-streaming
   // request ("Streaming is required for operations that may take longer than
@@ -43,7 +43,7 @@ export async function extractMenuSingle(sources: MenuSource[]): Promise<Menu> {
         model: config.anthropic.model,
         max_tokens: 32000,
         system: SYSTEM,
-        messages: [{ role: "user", content: buildContentBlocks(sources) }],
+        messages: [{ role: "user", content: buildContentBlocks(sources, context) }],
       },
       SINGLE_OPTS,
     ),
@@ -97,11 +97,12 @@ export async function extractFromOutline(
   outline: Outline,
   sources: MenuSource[],
   deps: FromOutlineDeps = { extractSections },
+  context?: string,
 ): Promise<Menu> {
   if (!outline.sections?.length) throw new Error("Outline produced no sections.");
   const groups = partitionSections(outline.sections);
   const results = await Promise.all(
-    groups.map((g) => deps.extractSections(sources, outline.tags ?? [], g.titles)),
+    groups.map((g) => deps.extractSections(sources, outline.tags ?? [], g.titles, context)),
   );
   const menu = mergeExtract(outline, results);
   if (menu.sections.length !== outline.sections.length) {
@@ -123,9 +124,10 @@ export interface ParallelDeps {
 export async function extractMenuParallel(
   sources: MenuSource[],
   deps: ParallelDeps = { outline: outlineMenu, extractSections },
+  context?: string,
 ): Promise<Menu> {
-  const outline = await deps.outline(sources);
-  return extractFromOutline(outline, sources, { extractSections: deps.extractSections });
+  const outline = await deps.outline(sources, context);
+  return extractFromOutline(outline, sources, { extractSections: deps.extractSections }, context);
 }
 
 /** Injected deps for the adaptive dispatcher (enables unit-testing without the LLM). */
@@ -133,6 +135,13 @@ export interface AdaptiveDeps {
   outline: typeof outlineMenu;
   extractSections: typeof extractSections;
   single: typeof extractMenuSingle;
+}
+
+/** Cross-cutting extract options: restaurant context for the prompt, and an
+ *  adaptive-routing callback so the caller can message the user. */
+export interface ExtractOpts {
+  context?: string;
+  onRoute?: (route: "single" | "parallel", complex: boolean | undefined) => void;
 }
 
 /**
@@ -145,26 +154,34 @@ export interface AdaptiveDeps {
 export async function extractMenuAdaptive(
   sources: MenuSource[],
   deps: AdaptiveDeps = { outline: outlineMenu, extractSections, single: extractMenuSingle },
+  opts: ExtractOpts = {},
 ): Promise<Menu> {
   let outline: Outline;
   try {
-    outline = await deps.outline(sources);
+    outline = await deps.outline(sources, opts.context);
   } catch (e) {
     console.error("Adaptive: outline failed; single fallback:", e);
-    return deps.single(sources);
+    return deps.single(sources, opts.context);
   }
   // Only a definite `complex === false` takes the parallel path; complex or
   // missing/ambiguous falls back to the safe single call.
   if (outline.complex !== false) {
     console.log(`[extract] adaptive → single (complex=${outline.complex})`);
-    return deps.single(sources);
+    opts.onRoute?.("single", outline.complex);
+    return deps.single(sources, opts.context);
   }
+  console.log("[extract] adaptive → parallel (complex=false)");
+  opts.onRoute?.("parallel", false);
   try {
-    console.log("[extract] adaptive → parallel (complex=false)");
-    return await extractFromOutline(outline, sources, { extractSections: deps.extractSections });
+    return await extractFromOutline(
+      outline,
+      sources,
+      { extractSections: deps.extractSections },
+      opts.context,
+    );
   } catch (e) {
     console.error("Adaptive: parallel path failed; single fallback:", e);
-    return deps.single(sources);
+    return deps.single(sources, opts.context);
   }
 }
 
@@ -187,20 +204,21 @@ export async function dispatchExtract(
     single: extractMenuSingle,
     adaptive: extractMenuAdaptive,
   },
+  opts: ExtractOpts = {},
 ): Promise<Menu> {
-  if (mode === "adaptive") return deps.adaptive(sources); // handles its own fallback
+  if (mode === "adaptive") return deps.adaptive(sources, undefined, opts);
   if (mode === "parallel") {
     try {
-      return await deps.parallel(sources);
+      return await deps.parallel(sources, undefined, opts.context);
     } catch (e) {
       console.error("Parallel extract failed; falling back to single call:", e);
     }
   }
-  return deps.single(sources);
+  return deps.single(sources, opts.context);
 }
 
 /** Read menu photos and return a structured, bilingual Menu. Dispatches on
  *  EXTRACT_MODE; parallel mode falls back to the single call on any failure. */
-export function extractMenu(sources: MenuSource[]): Promise<Menu> {
-  return dispatchExtract(sources, config.extract.mode);
+export function extractMenu(sources: MenuSource[], opts?: ExtractOpts): Promise<Menu> {
+  return dispatchExtract(sources, config.extract.mode, undefined, opts);
 }

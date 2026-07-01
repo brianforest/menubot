@@ -21,6 +21,7 @@ function promptText(sources: MenuSource[]): string {
  */
 export function buildContentBlocks(
   sources: MenuSource[],
+  context?: string,
 ): Anthropic.ContentBlockParam[] {
   const media: Anthropic.ContentBlockParam[] = sources.map((s) =>
     s.kind === "pdf"
@@ -41,5 +42,9 @@ export function buildContentBlocks(
           },
         },
   );
-  return [...media, { type: "text", text: promptText(sources) }];
+  const instruction =
+    context && context.trim()
+      ? `${promptText(sources)}\n\nRestaurant context (may help disambiguate dish names, cuisine, region, and currency): ${context.trim()}`
+      : promptText(sources);
+  return [...media, { type: "text", text: instruction }];
 }
