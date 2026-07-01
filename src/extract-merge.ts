@@ -7,6 +7,11 @@ export interface Outline {
   tags?: TagDef[];
   /** Ordered section titles only — no items. */
   sections: { en: string; zh: string }[];
+  /** True if any layout makes item↔price alignment visually ambiguous (detached/
+   *  offset price column, glass/bottle grid, nested spirits tables). Gates the
+   *  adaptive dispatcher toward the safe single call. Missing/undefined = treat as
+   *  complex (fail safe). */
+  complex?: boolean;
 }
 
 export interface SectionsResult {

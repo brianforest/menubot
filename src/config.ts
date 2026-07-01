@@ -20,6 +20,12 @@ function optional(name: string, fallback = ""): string {
   return clean(process.env[name]) || fallback;
 }
 
+/** Parse EXTRACT_MODE; anything unrecognised falls back to the safe "single". */
+export function parseExtractMode(raw: string): "single" | "parallel" | "adaptive" {
+  const m = raw.toLowerCase();
+  return m === "parallel" || m === "adaptive" ? m : "single";
+}
+
 const owner = required("GITHUB_OWNER");
 const repo = required("GITHUB_REPO");
 
@@ -60,12 +66,11 @@ export const config = {
     enabled: optional("WEB_ENRICH", "off").toLowerCase() === "on",
   },
   extract: {
-    // "parallel" runs the two-stage extractor (Pass-1 outline → parallel section
-    // workers → merge), falling back to the single call on any failure. Default
-    // "single" until A/B-verified on a real menu. Set EXTRACT_MODE=parallel.
-    mode: optional("EXTRACT_MODE", "single").toLowerCase() === "parallel"
-      ? "parallel"
-      : "single",
+    // "single" (default) reads the whole menu in one call. "parallel" runs the
+    // two-stage extractor (outline → parallel workers → merge). "adaptive" runs the
+    // outline first and picks single for structurally-complex menus, parallel for
+    // simple ones. Set EXTRACT_MODE=parallel|adaptive to override.
+    mode: parseExtractMode(optional("EXTRACT_MODE", "single")),
   },
   region: {
     // Deterministic regional→Taiwan wording normalization of zh fields. Zero

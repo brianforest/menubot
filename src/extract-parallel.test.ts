@@ -87,6 +87,7 @@ test("dispatchExtract falls back to single when parallel throws", async () => {
   const deps: DispatchDeps = {
     parallel: async () => { throw new Error("parallel boom"); },
     single: async () => { singleCalled = true; return fakeMenu; },
+    adaptive: async () => fakeMenu,
   };
   const result = await dispatchExtract(sources, "parallel", deps);
   assert.equal(singleCalled, true);
@@ -98,6 +99,7 @@ test("dispatchExtract with mode=single never calls parallel", async () => {
   const deps: DispatchDeps = {
     parallel: async () => { parallelCalled = true; return fakeMenu; },
     single: async () => fakeMenu,
+    adaptive: async () => fakeMenu,
   };
   await dispatchExtract(sources, "single", deps);
   assert.equal(parallelCalled, false);
