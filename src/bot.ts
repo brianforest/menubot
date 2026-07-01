@@ -10,6 +10,7 @@ import { findImage, downloadImage, verifyImage } from "./web-image.js";
 import { Glossary } from "./glossary.js";
 import { enrichMenu } from "./enrich.js";
 import { normalizeMenu } from "./regional.js";
+import { normalizeMenuLexicon } from "./lexicon.js";
 import { explainTerms, EXPLAIN_VERSION } from "./explain.js";
 import { BatchStore, type PendingItem } from "./batch.js";
 import type { MenuSource } from "./types.js";
@@ -240,6 +241,20 @@ async function processBatch(
     // enrich so glossary-injected explanations are normalized too; before render.
     if (config.region.enabled && glossary) {
       normalizeMenu(menu, glossary.getRegionalMap());
+    }
+
+    // Deterministic English-term → locale-best translation canonicalization (B2,
+    // zero API). Runs after regional so it sees Taiwan-normalized text; before
+    // render. The miss-logger surfaces curation candidates. Best-effort: any
+    // failure logs and publishes without B2, never blocking the menu.
+    if (config.lexicon.enabled && glossary) {
+      try {
+        normalizeMenuLexicon(menu, glossary.getLexicon(config.lexicon.targetLocale), (enTerm, zh) =>
+          console.log(`[lexicon-miss] ${enTerm} ≠ ${zh}`),
+        );
+      } catch (e) {
+        console.error("lexicon normalization failed (publishing without it):", e);
+      }
     }
 
     const html = renderMenu(menu);

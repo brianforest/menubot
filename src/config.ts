@@ -68,6 +68,14 @@ export const config = {
     // API, unit-tested; ON by default. Set REGION_NORMALIZE=off to disable.
     enabled: optional("REGION_NORMALIZE", "on").toLowerCase() !== "off",
   },
+  lexicon: {
+    // Deterministic English-term → locale-best translation canonicalization of
+    // zh fields (B2). Zero API, unit-tested; ON by default. Set
+    // LEXICON_NORMALIZE=off to disable. TARGET_LOCALE selects which locale's
+    // curated translations to apply (only zh-TW is seeded today).
+    enabled: optional("LEXICON_NORMALIZE", "on").toLowerCase() !== "off",
+    targetLocale: optional("TARGET_LOCALE", "zh-TW"),
+  },
   debug: {
     // When on, append a per-stage timing summary (⏱️) to the Telegram reply so a
     // live test shows where the latency goes without SSHing for logs. Default off
