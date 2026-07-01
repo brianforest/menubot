@@ -6,7 +6,7 @@ import { INTRO_SCHEMA, ITEM_RULES } from "./extract-rules.js";
 import { outlineMenu } from "./extract-outline.js";
 import { extractSections } from "./extract-sections.js";
 import { partitionSections } from "./extract-partition.js";
-import { mergeExtract } from "./extract-merge.js";
+import { mergeExtract, type Outline } from "./extract-merge.js";
 import { finalMessageWithDeadline } from "./stream-deadline.js";
 
 const client = new Anthropic({ apiKey: config.anthropic.apiKey });
@@ -82,38 +82,50 @@ export async function extractMenuSingle(sources: MenuSource[]): Promise<Menu> {
   return menu;
 }
 
-export interface ParallelDeps {
-  outline: typeof outlineMenu;
+/** Injected deps for the outline→menu half (enables unit-testing without the real LLM). */
+export interface FromOutlineDeps {
   extractSections: typeof extractSections;
 }
 
 /**
- * Two-stage extract: Pass-1 outline → contiguous partition → one parallel
- * worker per group (each sees all sources) → deterministic merge. Throws if the
- * outline is empty, any worker fails, or the merged menu has fewer sections than
- * the outline spine (completeness guard — erring toward fallback costs latency,
- * never fidelity).
+ * Partition a pre-computed outline into contiguous groups, run one parallel worker
+ * per group (each sees all sources), and deterministically merge. Throws if the
+ * outline is empty or the merged section count differs from the outline spine — a
+ * short-count menu is worse than a fallback, so the caller re-runs the single call.
  */
-export async function extractMenuParallel(
+export async function extractFromOutline(
+  outline: Outline,
   sources: MenuSource[],
-  deps: ParallelDeps = { outline: outlineMenu, extractSections },
+  deps: FromOutlineDeps = { extractSections },
 ): Promise<Menu> {
-  const outline = await deps.outline(sources);
   if (!outline.sections?.length) throw new Error("Outline produced no sections.");
   const groups = partitionSections(outline.sections);
   const results = await Promise.all(
     groups.map((g) => deps.extractSections(sources, outline.tags ?? [], g.titles)),
   );
   const menu = mergeExtract(outline, results);
-  // Fix 1: completeness guard — merged section count must match the Pass-1 spine.
-  // A short-count menu (e.g. a worker returned [] sections) is worse than a
-  // fallback, so throw here to trigger the dispatcher's single-call safety net.
   if (menu.sections.length !== outline.sections.length) {
     throw new Error(
       `Parallel extract incomplete: ${menu.sections.length}/${outline.sections.length} sections.`,
     );
   }
   return menu;
+}
+
+export interface ParallelDeps {
+  outline: typeof outlineMenu;
+  extractSections: typeof extractSections;
+}
+
+/**
+ * Two-stage extract: outline → extractFromOutline. Kept for EXTRACT_MODE=parallel.
+ */
+export async function extractMenuParallel(
+  sources: MenuSource[],
+  deps: ParallelDeps = { outline: outlineMenu, extractSections },
+): Promise<Menu> {
+  const outline = await deps.outline(sources);
+  return extractFromOutline(outline, sources, { extractSections: deps.extractSections });
 }
 
 /** Injected dependencies for dispatchExtract (enables unit-testing without the real LLM). */
