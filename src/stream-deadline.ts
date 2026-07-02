@@ -1,3 +1,5 @@
+import { recordUsage, type UsageLike } from "./usage.js";
+
 /** The slice of the SDK's MessageStream this helper needs. */
 export interface DeadlineStream<T> {
   finalMessage(): Promise<T>;
@@ -31,7 +33,11 @@ export async function finalMessageWithDeadline<T>(
     }, ms);
   });
   try {
-    return await Promise.race([stream.finalMessage(), guard]);
+    const result = await Promise.race([stream.finalMessage(), guard]);
+    // Best-effort token accounting for the timing/cost summary — real SDK
+    // messages carry `usage`; fakes/other T without it are simply ignored.
+    recordUsage((result as { usage?: UsageLike }).usage);
+    return result;
   } finally {
     clearTimeout(timer);
   }

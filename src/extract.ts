@@ -16,7 +16,9 @@ const SYSTEM = INTRO_SCHEMA + ITEM_RULES; // byte-identical to the original lite
 // The single call digitises the whole menu at once and can legitimately run
 // minutes; a generous ceiling bounds a truly-hung request without failing big
 // menus. No retries (a long vision call must not be billed/run twice).
-const SINGLE_OPTS = { timeout: 600_000, maxRetries: 0 } as const;
+// Generous hard deadline for the single whole-menu stream. Sonnet 5 extracts a
+// ~200-item menu in ~260s; 900s covers a much larger menu with margin.
+const SINGLE_OPTS = { timeout: 900_000, maxRetries: 0 } as const;
 
 /** Pull the first balanced JSON object out of a string. */
 function parseJson(text: string): Menu {
@@ -45,7 +47,14 @@ export async function extractMenuSingle(sources: MenuSource[], context?: string)
     client.messages.stream(
       {
         model: config.anthropic.model,
-        max_tokens: 64000,
+        // Sonnet 5's tokenizer emits ~30% more tokens than 4.6, so a large menu's
+        // JSON needs headroom; 100000 (ceiling is 128000) holds a ~350-item menu.
+        // max_tokens is only a ceiling — it bills nothing unless actually used.
+        max_tokens: 100000,
+        // Sonnet 5 defaults adaptive thinking ON when `thinking` is omitted, which
+        // would consume the max_tokens budget and add latency. Extraction wants a
+        // deterministic JSON pass, so disable it (no-op on models without it).
+        thinking: { type: "disabled" },
         system: SYSTEM,
         messages: [{ role: "user", content: buildContentBlocks(sources, context) }],
       },

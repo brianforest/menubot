@@ -18,6 +18,7 @@ import { tagPopular } from "./popular.js";
 import { findPopular } from "./web-popular.js";
 import { tagNotable } from "./notable.js";
 import { Timer } from "./timing.js";
+import { resetUsage, usageSummary } from "./usage.js";
 
 /** Count items carrying an explanation slug — the explain workload driver. */
 function countXterms(menu: { sections: { items?: { xterm?: string }[] }[] }): number {
@@ -121,6 +122,7 @@ async function processBatch(
   hint?: string,
 ): Promise<void> {
   const timer = new Timer();
+  resetUsage(); // start token accounting fresh for this menu
   try {
     const results = await timer.time("download", () =>
       Promise.allSettled(
@@ -279,12 +281,13 @@ async function processBatch(
     const stats =
       `files=${sources.length} sections=${menu.sections.length} ` +
       `items=${count} xterms=${countXterms(menu)}`;
+    const usage = usageSummary(config.anthropic.model);
     console.log(
-      `[timing] ${timer.format()} | total ${(timer.total() / 1000).toFixed(1)}s | ${stats}`,
+      `[timing] ${timer.format()} | total ${(timer.total() / 1000).toFixed(1)}s | ${stats} | ${usage.replace("\n", " ")}`,
     );
     if (config.debug.timing) {
       await ctx.reply(
-        `⏱️ ${timer.format()}\ntotal ${(timer.total() / 1000).toFixed(0)}s · ${stats}`,
+        `⏱️ ${timer.format()}\ntotal ${(timer.total() / 1000).toFixed(0)}s · ${stats}\n${usage}`,
       );
     }
   } catch (err) {
