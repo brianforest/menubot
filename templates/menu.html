@@ -68,8 +68,8 @@
   /* L1 category divider in the flat, scrollable content. scroll-margin-top clears
      the sticky controls so a jump lands on the heading, not under the bar. */
   .l1div { font-weight: 700; color: var(--accent); font-size: clamp(18px,5vw,22px);
-    padding: 16px 0 4px; border-bottom: 2px solid var(--ink); margin: 10px 0 12px; scroll-margin-top: 132px; }
-  #menu section { scroll-margin-top: 132px; }
+    padding: 16px 0 4px; border-bottom: 2px solid var(--ink); margin: 10px 0 12px; scroll-margin-top: var(--anchor-offset, 150px); }
+  #menu section { scroll-margin-top: var(--anchor-offset, 150px); }
   /* L2 popup picker (opened by an L1 chip; lists only that L1's L2s). */
   .l2pop-back { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.38);
     display: flex; align-items: flex-end; justify-content: center; }
@@ -335,6 +335,15 @@ l2back.addEventListener("click", (e) => {
   if (opt) { closeL2Pop(); jumpTo(opt.dataset.anchor); return; }
   if (e.target === l2back) closeL2Pop();
 });
+// Keep the jump anchor offset in sync with the actual sticky-controls height, so
+// a jump lands just below the bar instead of half-hidden under it.
+function syncAnchorOffset() {
+  const c = document.querySelector(".controls");
+  if (c) document.documentElement.style.setProperty("--anchor-offset", (c.offsetHeight + 10) + "px");
+}
+syncAnchorOffset();
+window.addEventListener("resize", syncAnchorOffset);
+window.addEventListener("orientationchange", syncAnchorOffset);
 
 barEl.addEventListener("click", (e) => {
   const btn = e.target.closest(".chip");
