@@ -7,3 +7,4 @@ data
 
 # Local working memory / handoffs — do not publish
 memory/
+.superpowers/
