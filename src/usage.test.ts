@@ -41,8 +41,8 @@ test("cache reads/writes are priced against input rate", () => {
   assert.equal(usageCostUSD("claude-sonnet-4-6").toFixed(2), "4.05");
 });
 
-test("summary is comma-grouped tokens + dollar cost", () => {
+test("summary is comma-grouped tokens + model label + dollar cost", () => {
   resetUsage();
   recordUsage({ input_tokens: 1_200_000, output_tokens: 34_000 });
-  assert.equal(usageSummary("claude-sonnet-5"), "1,234,000 tokens\n$2.74");
+  assert.equal(usageSummary("claude-sonnet-5"), "1,234,000 tokens (Sonnet 5)\n$2.74");
 });

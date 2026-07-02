@@ -63,12 +63,24 @@ export function usageCostUSD(model: string): number {
   );
 }
 
+/** Human-friendly model name for the timing message. Unknown ids show as-is. */
+const LABELS: Record<string, string> = {
+  "claude-sonnet-5": "Sonnet 5",
+  "claude-sonnet-4-6": "Sonnet 4.6",
+  "claude-opus-4-8": "Opus 4.8",
+  "claude-haiku-4-5": "Haiku 4.5",
+};
+
+export function modelLabel(model: string): string {
+  return LABELS[model] ?? model;
+}
+
 /** Comma-group an integer without relying on ICU (`1234567` -> `1,234,567`). */
 function withCommas(n: number): string {
   return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-/** Two-line suffix for the timing message: "186,432 tokens\n$0.42". */
+/** Two-line suffix for the timing message: "186,432 tokens (Sonnet 5)\n$0.42". */
 export function usageSummary(model: string): string {
-  return `${withCommas(usageTokens())} tokens\n$${usageCostUSD(model).toFixed(2)}`;
+  return `${withCommas(usageTokens())} tokens (${modelLabel(model)})\n$${usageCostUSD(model).toFixed(2)}`;
 }
