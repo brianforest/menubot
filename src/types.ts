@@ -43,6 +43,14 @@ export interface MenuSection {
   id?: string;
   /** Optional footnote shown under the section heading. */
   note?: string;
+  /** Broad L1 category for two-level nav, e.g. { en: "Alcohol", zh: "酒類" }. */
+  l1?: { en: string; zh: string };
+  /** L1 ordering tier: "savory" | "dessert" | "drink" | "alcohol" | "other". */
+  tier?: string;
+  /** L2 consolidated sub-category, e.g. { en: "Whiskey", zh: "威士忌" }. Sections
+   *  sharing an (l1, l2) merge into one L2 nav node; the section's own en/zh stays
+   *  the L3 sub-heading. */
+  l2?: { en: string; zh: string };
   items: MenuItem[];
 }
 
