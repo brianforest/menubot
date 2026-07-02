@@ -60,6 +60,23 @@
   .nav a { flex: 0 0 auto; text-decoration: none; font-size: 15px; color: var(--accent);
     background: var(--accent-soft); padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
 
+  .l1bar { display: flex; gap: 8px; overflow-x: auto; padding: 8px 14px 4px; scrollbar-width: none; -ms-overflow-style: none; }
+  .l1bar::-webkit-scrollbar { display: none; }
+  .l1chip { flex: 0 0 auto; font: inherit; font-size: 15px; font-weight: 600; border: 1px solid var(--accent);
+    background: #fff; color: var(--accent); border-radius: 999px; padding: 5px 13px; cursor: pointer; white-space: nowrap; }
+  .l1chip.active { background: var(--accent); color: #fff; }
+  .acc-l1 { margin: 0 0 6px; }
+  .acc-l1 > .acc-l1-head { font-weight: 700; color: var(--accent); font-size: clamp(18px,5vw,22px);
+    padding: 10px 0 6px; border-bottom: 2px solid var(--ink); cursor: pointer; display: flex; justify-content: space-between; }
+  .acc-l1-head .car { transition: transform .15s; }
+  .acc-l1.collapsed .acc-l1-body { display: none; }
+  .acc-l1.collapsed .car { transform: rotate(-90deg); }
+  .acc-l2 { display: flex; justify-content: space-between; align-items: center; padding: 9px 4px; border-bottom: 1px solid var(--accent-soft); cursor: pointer; }
+  .acc-l2 .l2name { font-weight: 600; }
+  .acc-l2 .l2cnt { color: var(--accent); background: var(--accent-soft); border-radius: 10px; padding: 1px 9px; font-size: 13px; }
+  body.lang-zh .acc-l2 .n-en, body.lang-zh .l1chip .c-en { display: none; }
+  body.lang-en .acc-l2 .n-zh, body.lang-en .l1chip .c-zh { display: none; }
+
   .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 14px calc(80px + var(--safe-b)); }
   .filterbar { display: flex; gap: 8px; overflow-x: auto; padding: 6px 14px 8px;
     scrollbar-width: none; -ms-overflow-style: none; }
@@ -148,7 +165,7 @@
     <button data-lang="zh">中文</button>
     <button data-lang="en">EN</button>
   </div>
-  <nav class="nav" id="nav" aria-label="sections"></nav>
+  <div class="l1bar" id="l1bar" role="group" aria-label="categories"></div>
   <div class="filterbar" id="filterbar" role="group" aria-label="filters"></div>
 </div>
 
@@ -173,14 +190,12 @@ const TAG_BY_ID = Object.fromEntries(TAGS.map(t => [t.id, t]));
 
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const menuEl = document.getElementById("menu");
-const navEl = document.getElementById("nav");
+const l1barEl = document.getElementById("l1bar");
 const barEl = document.getElementById("filterbar");
 
-// Render sections + items (items carry data-tags for filtering).
-MENU.forEach((sec, i) => {
-  const id = sec.id || ("sec-" + i);
-  navEl.insertAdjacentHTML("beforeend", `<a href="#${esc(id)}" data-sec="${esc(id)}">${esc(sec.zh || sec.en)}</a>`);
-
+// Render one section (id, heading, items) to HTML. Items carry data-tags for filtering.
+function sectionHtml(sec) {
+  const id = sec.id;
   const items = (sec.items || []).map(it => {
     const ids = it.tags || [];
     const icons = ids.filter(t => t !== "notable").map(t => (TAG_BY_ID[t] && TAG_BY_ID[t].icon) || "").filter(Boolean).join(" ");
@@ -190,13 +205,13 @@ MENU.forEach((sec, i) => {
       : "";
     const meta = (tags || explain) ? `<div class="meta">${tags}${explain}</div>` : "";
     const pic = it.img ? `<img class="dish" src="${esc(it.img)}" loading="lazy" alt="">` : "";
-    const price = it.p ? `<div class="price">${esc(it.p)}</div>` : "";
+    const price = it.p ? `<div class="price">${CUR}${esc(it.p)}</div>` : "";
     const den = it.den ? `<div class="desc">${esc(it.den)}</div>` : "";
     const dzh = it.dzh ? `<div class="desc-zh">${esc(it.dzh)}</div>` : "";
     const opts = (it.options && it.options.length)
       ? `<div class="opts">` + it.options.map(g => {
           const choices = (g.choices || []).map(c => {
-            const cp = c.p ? `<span class="opt-price">+${esc(c.p)}</span>` : "";
+            const cp = c.p ? `<span class="opt-price">+${CUR}${esc(c.p)}</span>` : "";
             return `<li><span class="oen">${esc(c.en)}</span><span class="ozh">${esc(c.zh)}</span>${cp}</li>`;
           }).join("");
           if (!choices) return "";
@@ -220,11 +235,45 @@ MENU.forEach((sec, i) => {
   }).join("");
 
   const note = sec.note ? `<p class="sec-note">${esc(sec.note)}</p>` : "";
-  menuEl.insertAdjacentHTML("beforeend", `<section id="${esc(id)}">
+  return `<section id="${esc(id)}">
     <div class="sec-head"><h2>${esc(sec.en)}</h2><span class="zh">${esc(sec.zh)}</span></div>
     ${note}<div class="grid">${items}</div>
-  </section>`);
+  </section>`;
+}
+
+// Accordion: for each L1 (NAV order) a collapsible block; inside, each L2 is a
+// tappable row (with count) followed by its L3 sections. Single-L2 L1s skip the
+// L2 row. First L1 expanded, the rest collapsed. Sections are matched to their
+// (l1,l2) group by the same keys groupByCategory used (zh, falling back to en).
+const l1KeyOf = (s) => (s.l1 && (s.l1.zh || s.l1.en)) || "其他";
+const l2KeyOf = (s) => (s.l2 && (s.l2.zh || s.l2.en)) || (s.zh || s.en);
+
+NAV.forEach((n1, idx) => {
+  const single = n1.l2s.length === 1;
+  const bodies = n1.l2s.map((n2) => {
+    const secs = MENU.filter((s) => l1KeyOf(s) === (n1.l1.zh || n1.l1.en) && l2KeyOf(s) === (n2.l2.zh || n2.l2.en));
+    const l2row = single ? "" :
+      `<div class="acc-l2" data-anchor="${esc(n2.anchor)}">
+        <span class="l2name"><span class="n-en">${esc(n2.l2.en)}</span><span class="n-zh">${esc(n2.l2.zh)}</span></span>
+        <span class="l2cnt">${n2.count}</span></div>`;
+    return l2row + secs.map(sectionHtml).join("");
+  }).join("");
+  menuEl.insertAdjacentHTML("beforeend",
+    `<div class="acc-l1 ${idx === 0 ? "" : "collapsed"}" id="l1-${idx}">
+      <div class="acc-l1-head"><span><span class="c-en">${esc(n1.l1.en)}</span><span class="c-zh">${esc(n1.l1.zh)}</span></span><span class="car">▼</span></div>
+      <div class="acc-l1-body">${bodies}</div>
+    </div>`);
 });
+
+NAV.forEach((n1, idx) => {
+  l1barEl.insertAdjacentHTML("beforeend",
+    `<button class="l1chip" data-l1i="${idx}"><span class="c-en">${esc(n1.l1.en)}</span><span class="c-zh">${esc(n1.l1.zh)}</span></button>`);
+});
+function expandOnly(idx) {
+  document.querySelectorAll(".acc-l1").forEach((el, i) => el.classList.toggle("collapsed", i !== idx));
+  l1barEl.querySelectorAll(".l1chip").forEach((c, i) => c.classList.toggle("active", i === idx));
+}
+expandOnly(0); // first L1 expanded, its chip marked active; matches the server-rendered initial state
 
 // Build the filter bar from the tags actually used by ≥1 item (in TAGS order).
 const used = new Set();
@@ -259,10 +308,23 @@ function applyFilter() {
       if (show) visible++;
     });
     sec.style.display = visible ? "" : "none";
-    const link = navEl.querySelector(`a[data-sec="${CSS.escape(sec.id)}"]`);
-    if (link) link.style.display = visible ? "" : "none";
   });
 }
+
+// L1 chip: expand that category (collapse others) and scroll to it.
+l1barEl.addEventListener("click", (e) => {
+  const chip = e.target.closest(".l1chip"); if (!chip) return;
+  const idx = Number(chip.dataset.l1i);
+  expandOnly(idx);
+  document.getElementById("l1-" + idx).scrollIntoView({ behavior: "smooth", block: "start" });
+});
+// Accordion: tap an L1 header to toggle it; tap an L2 row to scroll to its content.
+menuEl.addEventListener("click", (e) => {
+  const l2 = e.target.closest(".acc-l2");
+  if (l2) { const t = document.getElementById(l2.dataset.anchor); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  const head = e.target.closest(".acc-l1-head");
+  if (head) head.parentElement.classList.toggle("collapsed");
+});
 
 barEl.addEventListener("click", (e) => {
   const btn = e.target.closest(".chip");

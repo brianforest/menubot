@@ -90,3 +90,18 @@ test("renderMenu injects the NAV tree and the currency prefix", () => {
   assert.match(html, /"威士忌"/);              // the L2 label is present in NAV
   assert.match(html, /const CUR = "RM"/);     // MYR -> RM prefix injected
 });
+
+test("template renders L1 category chips, an accordion, and currency-prefixed prices", () => {
+  const html = renderMenu({
+    currency: "MYR",
+    sections: [
+      { en: "Scotch", zh: "蘇", l1: { en: "Alcohol", zh: "酒類" }, tier: "alcohol", l2: { en: "Whiskey", zh: "威士忌" },
+        items: [{ en: "Chivas", zh: "起瓦士", p: "37" }] },
+    ],
+  } as any);
+  assert.match(html, /class="l1chip"/);   // sticky L1 category chip element
+  assert.match(html, /class="acc/);        // accordion container class
+  // price prefixed by CUR at render time — the client concatenates CUR + it.p;
+  // assert the mechanism is present (CUR used in the price template)
+  assert.match(html, /CUR\s*\+\s*esc\(it\.p\)|\$\{CUR\}\$\{esc\(it\.p\)\}/);
+});
