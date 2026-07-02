@@ -14,7 +14,8 @@ const client = new Anthropic({ apiKey: config.anthropic.apiKey });
 // 180 s is a generous ceiling; if a worker hangs past this, the call throws and
 // the whole Promise.all rejects → dispatcher falls back to the single-call path.
 // No retries — a timed-out call × retries would multiply wall-clock unpredictably.
-const OPTS = { timeout: 180_000, maxRetries: 0 } as const;
+// [sonnet5-eval] test-only: 300s (up from 180s) headroom for Sonnet 5 workers.
+const OPTS = { timeout: 300_000, maxRetries: 0 } as const;
 
 const ITEM_SHAPE = `Each item: {
   "en": string, "zh": string, "p": string, "tags": string[], "xterm": string,
@@ -70,7 +71,10 @@ export async function extractSections(
     client.messages.stream(
       {
         model: config.anthropic.model,
-        max_tokens: 32000,
+        // [sonnet5-eval] test-only headroom for the +30% tokenizer.
+        max_tokens: 48000,
+        // [sonnet5-eval] disable Sonnet 5's default adaptive thinking.
+        thinking: { type: "disabled" },
         system: workerSystem(tags, titles),
         messages: [{ role: "user", content: buildContentBlocks(sources, context) }],
       },

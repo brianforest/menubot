@@ -16,7 +16,9 @@ const SYSTEM = INTRO_SCHEMA + ITEM_RULES; // byte-identical to the original lite
 // The single call digitises the whole menu at once and can legitimately run
 // minutes; a generous ceiling bounds a truly-hung request without failing big
 // menus. No retries (a long vision call must not be billed/run twice).
-const SINGLE_OPTS = { timeout: 600_000, maxRetries: 0 } as const;
+// [sonnet5-eval] test-only: 900s (up from 600s) — a larger Sonnet 5 single
+// stream on a ~200-item menu can run past 600s.
+const SINGLE_OPTS = { timeout: 900_000, maxRetries: 0 } as const;
 
 /** Pull the first balanced JSON object out of a string. */
 function parseJson(text: string): Menu {
@@ -45,7 +47,12 @@ export async function extractMenuSingle(sources: MenuSource[], context?: string)
     client.messages.stream(
       {
         model: config.anthropic.model,
-        max_tokens: 64000,
+        // [sonnet5-eval] test-only headroom: Sonnet 5's new tokenizer emits ~30%
+        // more tokens, so 100000 keeps a ~200-item menu from truncating.
+        max_tokens: 100000,
+        // [sonnet5-eval] Sonnet 5 defaults adaptive thinking ON, which would eat
+        // the max_tokens budget; disable to match the no-thinking baseline.
+        thinking: { type: "disabled" },
         system: SYSTEM,
         messages: [{ role: "user", content: buildContentBlocks(sources, context) }],
       },
