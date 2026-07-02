@@ -33,15 +33,19 @@ function parseJson(text: string): Menu {
  * @param sources Menu sources (images and/or PDFs).
  */
 export async function extractMenuSingle(sources: MenuSource[], context?: string): Promise<Menu> {
-  // A full multi-page menu can be large; 8k tokens truncated the JSON
-  // mid-array. With a generous max_tokens the SDK rejects a non-streaming
-  // request ("Streaming is required for operations that may take longer than
-  // 10 minutes"), so we stream and collect the final message.
+  // Single carries the WHOLE menu in one pass so price alignment is resolved
+  // holistically — the correctness path for complex/uncertain layouts (parallel
+  // per-section workers misalign offset price columns and inflate item counts).
+  // So give it room: a large complex menu (e.g. 53 sections / 204 items) exceeds
+  // 32000 and truncates mid-JSON; 64000 holds ~330 items. The model ceiling is
+  // 128K; menus beyond 64000 surface the honest truncation error below. A
+  // generous max_tokens makes the SDK reject a non-streaming request, so we
+  // stream and collect the final message (SINGLE_OPTS.timeout 600s covers it).
   const resp = await finalMessageWithDeadline(
     client.messages.stream(
       {
         model: config.anthropic.model,
-        max_tokens: 32000,
+        max_tokens: 64000,
         system: SYSTEM,
         messages: [{ role: "user", content: buildContentBlocks(sources, context) }],
       },
