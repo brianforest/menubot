@@ -29,3 +29,28 @@ export function displayCurrency(code: string): string {
   const key = code.trim().toUpperCase();
   return CURRENCY_DISPLAY[key] ?? code.trim();
 }
+
+/** Short money marker shown before a price (distinct from a bare count). Common
+ *  codes/symbols map to a compact prefix; unknown codes pass through; empty → "". */
+const CURRENCY_PREFIX: Record<string, string> = {
+  RM: "RM", MYR: "RM",
+  SGD: "S$",
+  THB: "฿",
+  IDR: "Rp",
+  PHP: "₱",
+  VND: "₫",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  JPY: "¥", CNY: "¥", RMB: "¥",
+  TWD: "NT$", NTD: "NT$",
+  HKD: "HK$",
+  KRW: "₩",
+  AUD: "A$",
+};
+
+export function currencyPrefix(code: string | undefined): string {
+  const key = (code ?? "").trim().toUpperCase();
+  if (!key) return "";
+  return CURRENCY_PREFIX[key] ?? key;
+}

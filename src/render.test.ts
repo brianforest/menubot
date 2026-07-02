@@ -77,3 +77,32 @@ test("renderMenu surfaces the notable tag and the template excludes it from item
   assert.ok(html.includes('"tags":["notable"]'), "item keeps notable in data for filtering");
   assert.ok(html.includes('t !== "notable"'), "template excludes notable from the item icon row");
 });
+
+test("renderMenu injects the NAV tree and the currency prefix", () => {
+  const html = renderMenu({
+    currency: "MYR",
+    sections: [
+      { en: "Scotch", zh: "蘇", l1: { en: "Alcohol", zh: "酒類" }, tier: "alcohol", l2: { en: "Whiskey", zh: "威士忌" },
+        items: [{ en: "Chivas", zh: "起瓦士", p: "37" }] },
+    ],
+  } as any);
+  assert.match(html, /const NAV = \[/);      // nav tree injected
+  assert.match(html, /"威士忌"/);              // the L2 label is present in NAV
+  assert.match(html, /const CUR = "RM"/);     // MYR -> RM prefix injected
+});
+
+test("template renders L1 chips, an L1 divider, the L2 popup, and currency-prefixed prices", () => {
+  const html = renderMenu({
+    currency: "MYR",
+    sections: [
+      { en: "Scotch", zh: "蘇", l1: { en: "Alcohol", zh: "酒類" }, tier: "alcohol", l2: { en: "Whiskey", zh: "威士忌" },
+        items: [{ en: "Chivas", zh: "起瓦士", p: "37" }] },
+    ],
+  } as any);
+  assert.match(html, /class="l1chip"/);        // sticky L1 category chip element
+  assert.match(html, /class="l1div"/);          // in-content L1 category divider
+  assert.match(html, /id="l2back"/);            // L2 popup picker backdrop element
+  assert.match(html, /openL2Pop/);              // popup opener wired
+  // price prefixed by CUR at render time (client concatenates CUR + it.p)
+  assert.match(html, /\$\{CUR\}\$\{esc\(it\.p\)\}/);
+});

@@ -60,6 +60,29 @@
   .nav a { flex: 0 0 auto; text-decoration: none; font-size: 15px; color: var(--accent);
     background: var(--accent-soft); padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
 
+  .l1bar { display: flex; gap: 8px; overflow-x: auto; padding: 8px 14px 4px; scrollbar-width: none; -ms-overflow-style: none; }
+  .l1bar::-webkit-scrollbar { display: none; }
+  .l1chip { flex: 0 0 auto; font: inherit; font-size: 15px; font-weight: 600; border: 1px solid var(--accent);
+    background: #fff; color: var(--accent); border-radius: 999px; padding: 5px 13px; cursor: pointer; white-space: nowrap; }
+  .l1chip.active { background: var(--accent); color: #fff; }
+  /* L1 category divider in the flat, scrollable content. scroll-margin-top clears
+     the sticky controls so a jump lands on the heading, not under the bar. */
+  .l1div { font-weight: 700; color: var(--accent); font-size: clamp(18px,5vw,22px);
+    padding: 16px 0 4px; border-bottom: 2px solid var(--ink); margin: 10px 0 12px; scroll-margin-top: var(--anchor-offset, 150px); }
+  #menu section { scroll-margin-top: var(--anchor-offset, 150px); }
+  /* L2 popup picker (opened by an L1 chip; lists only that L1's L2s). */
+  .l2pop-back { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.38);
+    display: flex; align-items: flex-end; justify-content: center; }
+  .l2pop-back[hidden] { display: none; }
+  .l2pop { background: var(--card); width: 100%; max-width: var(--maxw); max-height: 72vh; overflow-y: auto;
+    border-radius: 18px 18px 0 0; padding: 0 0 calc(14px + var(--safe-b)); box-shadow: 0 -6px 26px rgba(0,0,0,.22); }
+  .l2pop-title { font-weight: 700; color: var(--accent); text-align: center; padding: 14px 16px 6px; font-size: 17px; position: sticky; top: 0; background: var(--card); }
+  .l2opt { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; cursor: pointer; border-top: 1px solid var(--line); }
+  .l2opt .l2name { font-weight: 600; }
+  .l2opt .l2cnt { color: var(--accent); background: var(--accent-soft); border-radius: 10px; padding: 1px 9px; font-size: 13px; }
+  body.lang-zh .l2opt .n-en, body.lang-zh .l1chip .c-en, body.lang-zh .l1div .c-en, body.lang-zh .l2pop-title .c-en { display: none; }
+  body.lang-en .l2opt .n-zh, body.lang-en .l1chip .c-zh, body.lang-en .l1div .c-zh, body.lang-en .l2pop-title .c-zh { display: none; }
+
   .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 14px calc(80px + var(--safe-b)); }
   .filterbar { display: flex; gap: 8px; overflow-x: auto; padding: 6px 14px 8px;
     scrollbar-width: none; -ms-overflow-style: none; }
@@ -148,7 +171,7 @@
     <button data-lang="zh">中文</button>
     <button data-lang="en">EN</button>
   </div>
-  <nav class="nav" id="nav" aria-label="sections"></nav>
+  <div class="l1bar" id="l1bar" role="group" aria-label="categories"></div>
   <div class="filterbar" id="filterbar" role="group" aria-label="filters"></div>
 </div>
 
@@ -158,6 +181,7 @@
 
 <button id="toTop" aria-label="back to top">↑</button>
 <div id="popover" class="popover" hidden></div>
+<div id="l2back" class="l2pop-back" hidden><div id="l2pop" class="l2pop"></div></div>
 
 <footer>
   英中對照菜單 · Bilingual Menu — 中文翻譯僅供參考，內容以餐廳原文為準。<br />
@@ -167,18 +191,18 @@
 <script>
 const MENU = {{MENU_JSON}};
 const TAGS = {{TAGS_JSON}};
+const NAV = {{NAV_JSON}};
+const CUR = {{CURRENCY_PREFIX}};
 const TAG_BY_ID = Object.fromEntries(TAGS.map(t => [t.id, t]));
 
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const menuEl = document.getElementById("menu");
-const navEl = document.getElementById("nav");
+const l1barEl = document.getElementById("l1bar");
 const barEl = document.getElementById("filterbar");
 
-// Render sections + items (items carry data-tags for filtering).
-MENU.forEach((sec, i) => {
-  const id = sec.id || ("sec-" + i);
-  navEl.insertAdjacentHTML("beforeend", `<a href="#${esc(id)}" data-sec="${esc(id)}">${esc(sec.zh || sec.en)}</a>`);
-
+// Render one section (id, heading, items) to HTML. Items carry data-tags for filtering.
+function sectionHtml(sec) {
+  const id = sec.id;
   const items = (sec.items || []).map(it => {
     const ids = it.tags || [];
     const icons = ids.filter(t => t !== "notable").map(t => (TAG_BY_ID[t] && TAG_BY_ID[t].icon) || "").filter(Boolean).join(" ");
@@ -188,13 +212,13 @@ MENU.forEach((sec, i) => {
       : "";
     const meta = (tags || explain) ? `<div class="meta">${tags}${explain}</div>` : "";
     const pic = it.img ? `<img class="dish" src="${esc(it.img)}" loading="lazy" alt="">` : "";
-    const price = it.p ? `<div class="price">${esc(it.p)}</div>` : "";
+    const price = it.p ? `<div class="price">${CUR}${esc(it.p)}</div>` : "";
     const den = it.den ? `<div class="desc">${esc(it.den)}</div>` : "";
     const dzh = it.dzh ? `<div class="desc-zh">${esc(it.dzh)}</div>` : "";
     const opts = (it.options && it.options.length)
       ? `<div class="opts">` + it.options.map(g => {
           const choices = (g.choices || []).map(c => {
-            const cp = c.p ? `<span class="opt-price">+${esc(c.p)}</span>` : "";
+            const cp = c.p ? `<span class="opt-price">+${CUR}${esc(c.p)}</span>` : "";
             return `<li><span class="oen">${esc(c.en)}</span><span class="ozh">${esc(c.zh)}</span>${cp}</li>`;
           }).join("");
           if (!choices) return "";
@@ -218,11 +242,48 @@ MENU.forEach((sec, i) => {
   }).join("");
 
   const note = sec.note ? `<p class="sec-note">${esc(sec.note)}</p>` : "";
-  menuEl.insertAdjacentHTML("beforeend", `<section id="${esc(id)}">
+  return `<section id="${esc(id)}">
     <div class="sec-head"><h2>${esc(sec.en)}</h2><span class="zh">${esc(sec.zh)}</span></div>
     ${note}<div class="grid">${items}</div>
-  </section>`);
+  </section>`;
+}
+
+// Accordion: for each L1 (NAV order) a collapsible block; inside, each L2 is a
+// tappable row (with count) followed by its L3 sections. Single-L2 L1s skip the
+// L2 row. First L1 expanded, the rest collapsed. Sections are matched to their
+// (l1,l2) group by the same keys groupByCategory used (zh, falling back to en).
+const l1KeyOf = (s) => (s.l1 && (s.l1.zh || s.l1.en)) || "其他";
+const l2KeyOf = (s) => (s.l2 && (s.l2.zh || s.l2.en)) || (s.zh || s.en);
+
+// Flat content: for each L1 (tier order) a divider + its sections (in L2-group
+// order). No inline L2 rows / accordion — L2s live in the popup picker. Plus a
+// sticky L1 chip that opens that popup.
+NAV.forEach((n1, idx) => {
+  let secsHtml = "";
+  n1.l2s.forEach((n2) => {
+    const secs = MENU.filter((s) => l1KeyOf(s) === (n1.l1.zh || n1.l1.en) && l2KeyOf(s) === (n2.l2.zh || n2.l2.en));
+    secsHtml += secs.map(sectionHtml).join("");
+  });
+  menuEl.insertAdjacentHTML("beforeend",
+    `<div class="l1div" id="l1-${idx}"><span class="c-en">${esc(n1.l1.en)}</span><span class="c-zh">${esc(n1.l1.zh)}</span></div>${secsHtml}`);
+  l1barEl.insertAdjacentHTML("beforeend",
+    `<button class="l1chip" data-l1i="${idx}"><span class="c-en">${esc(n1.l1.en)}</span><span class="c-zh">${esc(n1.l1.zh)}</span></button>`);
 });
+
+// L2 popup picker: opened by a multi-L2 L1 chip; a single-L2 chip jumps directly.
+const l2back = document.getElementById("l2back");
+const l2popEl = document.getElementById("l2pop");
+function openL2Pop(idx) {
+  const n1 = NAV[idx];
+  const rows = n1.l2s.map((n2) =>
+    `<div class="l2opt" data-anchor="${esc(n2.anchor)}">
+      <span class="l2name"><span class="n-en">${esc(n2.l2.en)}</span><span class="n-zh">${esc(n2.l2.zh)}</span></span>
+      <span class="l2cnt">${n2.count}</span></div>`).join("");
+  l2popEl.innerHTML = `<div class="l2pop-title"><span class="c-en">${esc(n1.l1.en)}</span><span class="c-zh">${esc(n1.l1.zh)}</span></div>${rows}`;
+  l2back.hidden = false;
+}
+function closeL2Pop() { l2back.hidden = true; }
+function jumpTo(id) { const t = document.getElementById(id); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); }
 
 // Build the filter bar from the tags actually used by ≥1 item (in TAGS order).
 const used = new Set();
@@ -257,10 +318,32 @@ function applyFilter() {
       if (show) visible++;
     });
     sec.style.display = visible ? "" : "none";
-    const link = navEl.querySelector(`a[data-sec="${CSS.escape(sec.id)}"]`);
-    if (link) link.style.display = visible ? "" : "none";
   });
 }
+
+// L1 chip: a single-L2 category jumps straight to its section heading; a
+// multi-L2 category opens the L2 popup picker.
+l1barEl.addEventListener("click", (e) => {
+  const chip = e.target.closest(".l1chip"); if (!chip) return;
+  const idx = Number(chip.dataset.l1i);
+  if (NAV[idx].l2s.length <= 1) jumpTo("l1-" + idx);
+  else openL2Pop(idx);
+});
+// Popup: tap an L2 → close + jump to its section; tap the backdrop → close.
+l2back.addEventListener("click", (e) => {
+  const opt = e.target.closest(".l2opt");
+  if (opt) { closeL2Pop(); jumpTo(opt.dataset.anchor); return; }
+  if (e.target === l2back) closeL2Pop();
+});
+// Keep the jump anchor offset in sync with the actual sticky-controls height, so
+// a jump lands just below the bar instead of half-hidden under it.
+function syncAnchorOffset() {
+  const c = document.querySelector(".controls");
+  if (c) document.documentElement.style.setProperty("--anchor-offset", (c.offsetHeight + 10) + "px");
+}
+syncAnchorOffset();
+window.addEventListener("resize", syncAnchorOffset);
+window.addEventListener("orientationchange", syncAnchorOffset);
 
 barEl.addEventListener("click", (e) => {
   const btn = e.target.closest(".chip");

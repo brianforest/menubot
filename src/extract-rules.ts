@@ -19,6 +19,9 @@ Output schema (return ONLY this JSON, no markdown, no commentary):
     {
       "en": string,                                  // section title in English
       "zh": string,                                  // section title in 繁體中文
+      "l1":   { "en": string, "zh": string },       // broad menu category for this section, e.g. {"en":"Alcohol","zh":"酒類"} — group naturally for THIS menu, Taiwan wording
+      "tier": string,                                // one of: "savory" | "dessert" | "drink" | "alcohol" | "other" — used to order categories
+      "l2":   { "en": string, "zh": string },        // consolidated sub-category; MERGE same-type over-split sections into ONE l2 (all "Whiskey Collections – X" sections → {"en":"Whiskey","zh":"威士忌"}); a standalone section is its own l2
       "note": string,                                // optional footnote, else ""
       "items": [
         {
@@ -39,6 +42,20 @@ Output schema (return ONLY this JSON, no markdown, no commentary):
   ]
 }
 
+Category classification (l1/tier/l2) — for EVERY section:
+- l1: the broad menu area (e.g. 早餐/餐點/點心/飲料/酒類 for food; or the natural
+  areas of a spa/service menu). Use consistent l1 names across sections.
+- tier: pick the single best of savory | dessert | drink | alcohol | other. Non-food
+  menus: use "other".
+- ALWAYS separate alcohol from soft drinks into DIFFERENT l1 categories: alcoholic
+  drinks (beer, wine, spirits, whisky, cocktails, sake) → l1 {"en":"Alcohol","zh":"酒類"}
+  tier "alcohol"; non-alcoholic drinks (water, juice, soft drinks, coffee, tea,
+  mocktails, milkshakes) → l1 {"en":"Beverages","zh":"飲料"} tier "drink". Never lump
+  them under one broad "Beverages" l1.
+- l2: the consolidated sub-category. When a menu prints many same-type sub-sections
+  (e.g. Whiskey → Scotch/Bourbon/Irish/Japanese…), give them ALL the same l2
+  ({"en":"Whiskey","zh":"威士忌"}) so they group into one node; keep each printed
+  sub-section as its own section en/zh. A section with no finer type is its own l2.
 `;
 
 /** The item/tag/xterm/options extraction rules + examples, shared by the

@@ -112,3 +112,22 @@ test("does not dedupe the same item name across different sections", () => {
   assert.equal(menu.sections[0].items.length, 1);
   assert.equal(menu.sections[1].items.length, 1); // cross-section repeat preserved
 });
+
+test("mergeExtract copies l1/tier/l2 from the outline spine onto merged sections", () => {
+  const outline = {
+    restaurant: { en: "R", zh: "餐" }, currency: "SGD", kind: "food", tags: [],
+    sections: [
+      { en: "Scotch", zh: "蘇格蘭", l1: { en: "Alcohol", zh: "酒類" }, tier: "alcohol", l2: { en: "Whiskey", zh: "威士忌" } },
+      { en: "Bourbon", zh: "波本", l1: { en: "Alcohol", zh: "酒類" }, tier: "alcohol", l2: { en: "Whiskey", zh: "威士忌" } },
+    ],
+  };
+  const results = [
+    { sections: [{ en: "Scotch", zh: "蘇格蘭", items: [{ en: "Chivas", zh: "起瓦士", p: "37" }] }], tags: [] },
+    { sections: [{ en: "Bourbon", zh: "波本", items: [{ en: "Jim Beam", zh: "金賓", p: "33" }] }], tags: [] },
+  ];
+  const menu = mergeExtract(outline as any, results as any);
+  assert.equal(menu.sections.length, 2);
+  assert.deepEqual(menu.sections[0].l1, { en: "Alcohol", zh: "酒類" });
+  assert.equal(menu.sections[0].tier, "alcohol");
+  assert.deepEqual(menu.sections[1].l2, { en: "Whiskey", zh: "威士忌" });
+});

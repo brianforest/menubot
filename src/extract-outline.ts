@@ -23,7 +23,10 @@ NOT the individual items. Return ONLY this JSON (no markdown, no commentary):
   "tags": [                                          // every distinct classification label the menu uses
     { "id": string, "en": string, "zh": string, "icon": string, "group": string }
   ],
-  "sections": [ { "en": string, "zh": string } ],    // EVERY section title, in reading order; titles only
+  "sections": [ { "en": string, "zh": string,
+    "l1": { "en": string, "zh": string },        // broad menu category, e.g. {"en":"Alcohol","zh":"酒類"}
+    "tier": string,                                // "savory" | "dessert" | "drink" | "alcohol" | "other"
+    "l2": { "en": string, "zh": string } } ],      // consolidated sub-category; merge same-type sub-sections (all Whiskey → {"en":"Whiskey","zh":"威士忌"})
   "complex": boolean                                  // see the complexity rule below
 }
 Rules:
@@ -50,6 +53,14 @@ Rules:
   column). Set "complex": false ONLY if every section is a simple linear list where
   each item's price (if any) sits directly beside or below its own name. When in
   doubt, prefer true.
+- For each section also set l1 (broad category, Taiwan wording), tier (one of
+  savory|dessert|drink|alcohol|other), and l2 (consolidated sub-category — give
+  same-type sub-sections like Whiskey Collections – Scotch/Bourbon the SAME l2
+  {"en":"Whiskey","zh":"威士忌"} so they group into one node).
+- ALWAYS split drinks into two l1 categories: alcohol (beer/wine/spirits/whisky/
+  cocktails) → {"en":"Alcohol","zh":"酒類"} tier "alcohol"; non-alcoholic (water/
+  juice/soft drinks/coffee/tea/mocktails) → {"en":"Beverages","zh":"飲料"} tier
+  "drink". Never lump them under one broad "Beverages" l1.
   Valid JSON, no trailing commas.`;
 
 /** Validate and extract an Outline from the model's text. */

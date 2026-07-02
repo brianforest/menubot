@@ -8,6 +8,7 @@ import { extractSections } from "./extract-sections.js";
 import { partitionSections } from "./extract-partition.js";
 import { mergeExtract, type Outline } from "./extract-merge.js";
 import { finalMessageWithDeadline } from "./stream-deadline.js";
+import { escapeControlCharsInJson } from "./extract-json.js";
 
 const client = new Anthropic({ apiKey: config.anthropic.apiKey });
 
@@ -20,14 +21,15 @@ const SYSTEM = INTRO_SCHEMA + ITEM_RULES; // byte-identical to the original lite
 // ~200-item menu in ~260s; 900s covers a much larger menu with margin.
 const SINGLE_OPTS = { timeout: 900_000, maxRetries: 0 } as const;
 
-/** Pull the first balanced JSON object out of a string. */
+/** Pull the first balanced JSON object out of a string, repairing stray control
+ *  characters inside string literals first. */
 function parseJson(text: string): Menu {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
   if (start === -1 || end === -1) {
     throw new Error("Model did not return JSON:\n" + text.slice(0, 500));
   }
-  return JSON.parse(text.slice(start, end + 1)) as Menu;
+  return JSON.parse(escapeControlCharsInJson(text.slice(start, end + 1))) as Menu;
 }
 
 /**

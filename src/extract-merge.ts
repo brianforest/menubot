@@ -6,7 +6,7 @@ export interface Outline {
   kind?: string;
   tags?: TagDef[];
   /** Ordered section titles only — no items. */
-  sections: { en: string; zh: string }[];
+  sections: { en: string; zh: string; l1?: { en: string; zh: string }; tier?: string; l2?: { en: string; zh: string } }[];
   /** True if any layout makes item↔price alignment visually ambiguous (detached/
    *  offset price column, glass/bottle grid, nested spirits tables). Gates the
    *  adaptive dispatcher toward the safe single call. Missing/undefined = treat as
@@ -51,6 +51,14 @@ export function mergeExtract(outline: Outline, results: SectionsResult[]): Menu 
   const sections: MenuSection[] = dedupeWithinSections(
     results.flatMap((r) => r.sections ?? []),
   );
+
+  // Carry the outline's per-section classification onto the merged sections
+  // (workers return items only). Index alignment holds: sections concatenate in
+  // outline group/reading order, and the count matches the outline spine.
+  sections.forEach((s, i) => {
+    const o = outline.sections[i];
+    if (o) { s.l1 = o.l1; s.tier = o.tier; s.l2 = o.l2; }
+  });
 
   const byId = new Map<string, TagDef>();
   for (const t of [...(outline.tags ?? []), ...results.flatMap((r) => r.tags ?? [])]) {
