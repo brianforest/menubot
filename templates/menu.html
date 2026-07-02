@@ -185,7 +185,7 @@
 const MENU = {{MENU_JSON}};
 const TAGS = {{TAGS_JSON}};
 const NAV = {{NAV_JSON}};
-const CUR = "{{CURRENCY_PREFIX}}";
+const CUR = {{CURRENCY_PREFIX}};
 const TAG_BY_ID = Object.fromEntries(TAGS.map(t => [t.id, t]));
 
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));

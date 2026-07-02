@@ -37,3 +37,14 @@ test("sections without classification fall into an 'Other' L1 (last), each its o
   assert.equal(nav[nav.length - 1].tier, "other");
   assert.equal(nav[nav.length - 1].l2s[0].anchor, "m0");
 });
+
+test("empty-but-present l1/l2 objects are treated as absent (fall into 其他), not a blank node", () => {
+  const sections: MenuSection[] = [
+    sec({ en: "Ghost", zh: "幽靈", id: "g0", l1: { en: "", zh: "" }, tier: "savory", l2: { en: "", zh: "" }, items: [{ en: "x", zh: "" }] }),
+  ];
+  const nav = groupByCategory(sections);
+  assert.equal(nav.length, 1);
+  assert.deepEqual(nav[0].l1, { en: "Other", zh: "其他" });
+  assert.equal(nav[0].tier, "other");
+  assert.equal(nav[0].l2s[0].anchor, "g0");
+});

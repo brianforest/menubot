@@ -33,8 +33,9 @@ export function groupByCategory(sections: MenuSection[]): NavL1[] {
   const l1Index = new Map<string, NavL1>();
 
   for (const sec of sections) {
-    const l1 = sec.l1 ?? OTHER_L1;
-    const tier = sec.l1 ? (sec.tier ?? "other") : "other";
+    const hasL1 = !!(sec.l1 && (sec.l1.zh || sec.l1.en));
+    const l1 = hasL1 ? sec.l1! : OTHER_L1;
+    const tier = hasL1 ? (sec.tier ?? "other") : "other";
     const l1Key = l1.zh || l1.en;
     let n1 = l1Index.get(l1Key);
     if (!n1) {
@@ -42,7 +43,7 @@ export function groupByCategory(sections: MenuSection[]): NavL1[] {
       l1Index.set(l1Key, n1);
       l1s.push(n1);
     }
-    const l2 = sec.l2 ?? { en: sec.en, zh: sec.zh };
+    const l2 = (sec.l2 && (sec.l2.zh || sec.l2.en)) ? sec.l2 : { en: sec.en, zh: sec.zh };
     const l2Key = l2.zh || l2.en;
     let n2 = n1.l2s.find((x) => (x.l2.zh || x.l2.en) === l2Key);
     if (!n2) {

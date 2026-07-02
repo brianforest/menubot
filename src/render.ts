@@ -48,7 +48,7 @@ export function renderMenu(menu: Menu): string {
     .replace("{{MENU_JSON}}", JSON.stringify(sections))
     .replace("{{TAGS_JSON}}", JSON.stringify(menu.tags ?? []))
     .replace("{{NAV_JSON}}", JSON.stringify(nav))
-    .replace("{{CURRENCY_PREFIX}}", escapeHtml(curPrefix));
+    .replace("{{CURRENCY_PREFIX}}", JSON.stringify(curPrefix));
 }
 
 function escapeHtml(s: string): string {
