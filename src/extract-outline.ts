@@ -67,9 +67,11 @@ export async function outlineMenu(sources: MenuSource[], context?: string): Prom
     client.messages.stream(
       {
         model: config.anthropic.model,
-        // [sonnet5-eval] test-only headroom for the +30% tokenizer.
+        // Outline is small (metadata + section spine); 6000 covers a 53-section
+        // menu with Sonnet 5's ~30%-larger tokenizer.
         max_tokens: 6000,
-        // [sonnet5-eval] disable Sonnet 5's default adaptive thinking.
+        // Disable Sonnet 5's default adaptive thinking — the outline is a
+        // deterministic JSON pass (no-op on models without adaptive thinking).
         thinking: { type: "disabled" },
         system: OUTLINE_SYSTEM,
         messages: [{ role: "user", content: buildContentBlocks(sources, context) }],

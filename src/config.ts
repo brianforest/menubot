@@ -38,7 +38,11 @@ export const config = {
   },
   anthropic: {
     apiKey: required("ANTHROPIC_API_KEY"),
-    model: optional("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+    // Production model. Sonnet 5 beat 4.6 on this workload — ~1.5-1.9x faster,
+    // better item recall + high-res (2576px) image term recognition, identical
+    // price-grid correctness — verified 2026-07-02. Extract disables thinking
+    // and carries larger max_tokens for Sonnet 5's ~30%-larger tokenizer.
+    model: optional("ANTHROPIC_MODEL", "claude-sonnet-5"),
   },
   publish: {
     baseUrl: required("PUBLISH_BASE_URL").replace(/\/+$/, ""), // no trailing slash → clean /m/<slug>/ URLs
