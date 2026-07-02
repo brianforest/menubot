@@ -47,6 +47,11 @@ Category classification (l1/tier/l2) — for EVERY section:
   areas of a spa/service menu). Use consistent l1 names across sections.
 - tier: pick the single best of savory | dessert | drink | alcohol | other. Non-food
   menus: use "other".
+- ALWAYS separate alcohol from soft drinks into DIFFERENT l1 categories: alcoholic
+  drinks (beer, wine, spirits, whisky, cocktails, sake) → l1 {"en":"Alcohol","zh":"酒類"}
+  tier "alcohol"; non-alcoholic drinks (water, juice, soft drinks, coffee, tea,
+  mocktails, milkshakes) → l1 {"en":"Beverages","zh":"飲料"} tier "drink". Never lump
+  them under one broad "Beverages" l1.
 - l2: the consolidated sub-category. When a menu prints many same-type sub-sections
   (e.g. Whiskey → Scotch/Bourbon/Irish/Japanese…), give them ALL the same l2
   ({"en":"Whiskey","zh":"威士忌"}) so they group into one node; keep each printed

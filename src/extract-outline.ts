@@ -57,6 +57,10 @@ Rules:
   savory|dessert|drink|alcohol|other), and l2 (consolidated sub-category — give
   same-type sub-sections like Whiskey Collections – Scotch/Bourbon the SAME l2
   {"en":"Whiskey","zh":"威士忌"} so they group into one node).
+- ALWAYS split drinks into two l1 categories: alcohol (beer/wine/spirits/whisky/
+  cocktails) → {"en":"Alcohol","zh":"酒類"} tier "alcohol"; non-alcoholic (water/
+  juice/soft drinks/coffee/tea/mocktails) → {"en":"Beverages","zh":"飲料"} tier
+  "drink". Never lump them under one broad "Beverages" l1.
   Valid JSON, no trailing commas.`;
 
 /** Validate and extract an Outline from the model's text. */

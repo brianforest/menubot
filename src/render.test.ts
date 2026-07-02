@@ -91,7 +91,7 @@ test("renderMenu injects the NAV tree and the currency prefix", () => {
   assert.match(html, /const CUR = "RM"/);     // MYR -> RM prefix injected
 });
 
-test("template renders L1 category chips, an accordion, and currency-prefixed prices", () => {
+test("template renders L1 chips, an L1 divider, the L2 popup, and currency-prefixed prices", () => {
   const html = renderMenu({
     currency: "MYR",
     sections: [
@@ -99,9 +99,10 @@ test("template renders L1 category chips, an accordion, and currency-prefixed pr
         items: [{ en: "Chivas", zh: "起瓦士", p: "37" }] },
     ],
   } as any);
-  assert.match(html, /class="l1chip"/);   // sticky L1 category chip element
-  assert.match(html, /class="acc/);        // accordion container class
-  // price prefixed by CUR at render time — the client concatenates CUR + it.p;
-  // assert the mechanism is present (CUR used in the price template)
-  assert.match(html, /CUR\s*\+\s*esc\(it\.p\)|\$\{CUR\}\$\{esc\(it\.p\)\}/);
+  assert.match(html, /class="l1chip"/);        // sticky L1 category chip element
+  assert.match(html, /class="l1div"/);          // in-content L1 category divider
+  assert.match(html, /id="l2back"/);            // L2 popup picker backdrop element
+  assert.match(html, /openL2Pop/);              // popup opener wired
+  // price prefixed by CUR at render time (client concatenates CUR + it.p)
+  assert.match(html, /\$\{CUR\}\$\{esc\(it\.p\)\}/);
 });

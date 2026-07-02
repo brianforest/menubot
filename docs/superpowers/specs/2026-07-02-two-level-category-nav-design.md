@@ -146,6 +146,30 @@ accordion/scroll is client JS.
 Each slice is independently mergeable; B degrades gracefully if A's fields are
 absent.
 
+## Revision (2026-07-02, after phone verification)
+
+Three changes after Brian saw the first build:
+
+1. **L2 is a popup picker, not an inline accordion.** Tapping an L1 chip opens an
+   independent popup (💡-popover style) listing ONLY that L1's L2 items (with
+   counts); tapping an L2 closes the popup and scrolls to that section. No inline
+   accordion, no collapse, no other L1's L2 shown inline. A single-L2 L1 chip
+   scrolls directly (no popup). The `#menu` content is a flat, scrollable list of
+   sections in tier/L1 order with L1 category dividers + L3 section headings (no
+   inline L2 rows).
+2. **Split beverages into two L1s.** Non-alcoholic drinks (water, juice, soft
+   drinks, coffee, tea, mocktails) → their own L1 (飲料, tier `drink`); alcohol
+   (beer, wine, spirits, whisky, cocktails) → a separate L1 (酒類, tier `alcohol`).
+   Order: … dessert → 飲料(drink) → 酒類(alcohol). Prompt-level change; the fixed
+   tier order already sequences drink before alcohol.
+3. **Jump lands on the section heading, not the first item.** The sticky controls
+   bar obscured the target; add `scroll-margin-top` (= sticky bar height) on
+   sections and L1 dividers so a jump stops at the heading (e.g. "For Our Jr. VIPs
+   兒童貴賓餐", not "Ben 10").
+
+Supersedes the "sticky L1 chips + two-level accordion" interaction and the
+single-broad-beverage-category behavior described above.
+
 ## Out of scope
 
 - Three-level navigation (L3 stays content-only).
