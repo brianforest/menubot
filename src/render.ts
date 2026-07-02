@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { Menu } from "./types.js";
-import { displayCurrency } from "./currency.js";
+import { displayCurrency, currencyPrefix } from "./currency.js";
+import { groupByCategory } from "./category-nav.js";
 
 const templatePath = fileURLToPath(
   new URL("../templates/menu.html", import.meta.url),
@@ -38,11 +39,16 @@ export function renderMenu(menu: Menu): string {
     .filter(Boolean)
     .join("  |  ");
 
+  const nav = groupByCategory(sections);
+  const curPrefix = currencyPrefix(menu.currency);
+
   return TEMPLATE.replace(/\{\{TITLE_EN\}\}/g, escapeHtml(titleEn))
     .replace(/\{\{TITLE_ZH\}\}/g, escapeHtml(titleZh))
     .replace(/\{\{SUBTITLE\}\}/g, escapeHtml(subtitle))
     .replace("{{MENU_JSON}}", JSON.stringify(sections))
-    .replace("{{TAGS_JSON}}", JSON.stringify(menu.tags ?? []));
+    .replace("{{TAGS_JSON}}", JSON.stringify(menu.tags ?? []))
+    .replace("{{NAV_JSON}}", JSON.stringify(nav))
+    .replace("{{CURRENCY_PREFIX}}", escapeHtml(curPrefix));
 }
 
 function escapeHtml(s: string): string {
