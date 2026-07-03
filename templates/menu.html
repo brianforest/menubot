@@ -266,8 +266,18 @@ NAV.forEach((n1, idx) => {
   });
   menuEl.insertAdjacentHTML("beforeend",
     `<div class="l1div" id="l1-${idx}"><span class="c-en">${esc(n1.l1.en)}</span><span class="c-zh">${esc(n1.l1.zh)}</span></div>${secsHtml}`);
-  l1barEl.insertAdjacentHTML("beforeend",
-    `<button class="l1chip" data-l1i="${idx}"><span class="c-en">${esc(n1.l1.en)}</span><span class="c-zh">${esc(n1.l1.zh)}</span></button>`);
+  // Savory categories with few L2s (<5) skip the L2 layer entirely: promote each
+  // L2 to its own direct chip (one tap to the section, like the original flat
+  // nav). Large categories keep the single L1 chip + popup picker.
+  if (n1.tier === "savory" && n1.l2s.length > 1 && n1.l2s.length < 5) {
+    n1.l2s.forEach((n2) => {
+      l1barEl.insertAdjacentHTML("beforeend",
+        `<button class="l1chip" data-anchor="${esc(n2.anchor)}"><span class="c-en">${esc(n2.l2.en)}</span><span class="c-zh">${esc(n2.l2.zh)}</span></button>`);
+    });
+  } else {
+    l1barEl.insertAdjacentHTML("beforeend",
+      `<button class="l1chip" data-l1i="${idx}"><span class="c-en">${esc(n1.l1.en)}</span><span class="c-zh">${esc(n1.l1.zh)}</span></button>`);
+  }
 });
 
 // L2 popup picker: opened by a multi-L2 L1 chip; a single-L2 chip jumps directly.
@@ -325,6 +335,7 @@ function applyFilter() {
 // multi-L2 category opens the L2 popup picker.
 l1barEl.addEventListener("click", (e) => {
   const chip = e.target.closest(".l1chip"); if (!chip) return;
+  if (chip.dataset.anchor) { jumpTo(chip.dataset.anchor); return; } // promoted L2 chip
   const idx = Number(chip.dataset.l1i);
   if (NAV[idx].l2s.length <= 1) jumpTo("l1-" + idx);
   else openL2Pop(idx);
