@@ -137,3 +137,17 @@ test("lexicon seed is idempotent and does not clobber an edited row", () => {
   assert.equal(waffle!.canonical, "鬆餅");
   g.close();
 });
+
+test("re-seeding UNIONS new seed variants into an existing row (curation growth path)", () => {
+  const g = new Glossary(":memory:");
+  // simulate a live db whose row predates newly-appended seed variants, plus a
+  // hand-added variant that the union must preserve
+  g.putLexicon("flat white", "zh-TW", "馥芮白", ["平白咖啡", "手動加的變體"]);
+  g.seedLexicon();
+  const fw = g.getLexicon("zh-TW").find((e) => e.enTerm === "flat white")!;
+  assert.ok(fw.variants.includes("手動加的變體")); // hand-added preserved
+  assert.ok(fw.variants.includes("澳式白咖啡"));   // newly-seeded variant arrived
+  assert.ok(fw.variants.includes("馥列"));
+  assert.equal(fw.canonical, "馥芮白");
+  g.close();
+});
