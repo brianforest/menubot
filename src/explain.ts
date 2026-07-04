@@ -44,6 +44,8 @@ Content for explain_en / explain_zh (2-4 sentences, concise — shown in a small
 Be accurate; never invent specifics you are unsure of. Keep it tight (a popover, not an
 essay). Traditional Chinese for the _zh fields, using natural TAIWAN (台灣) wording (e.g.
 鮭魚 not 三文魚, 起司 not 芝士, 義大利麵 not 意大利粉) — not Hong Kong / Cantonese terms.
+In zh text use HALF-WIDTH parentheses with a half-width space outside each paren —
+e.g. "羅蒂 (Roti, ROH-tee)" — NEVER full-width （）.
 Valid JSON, no trailing commas.`;
 
 /** Content version of cached explanations: changes automatically when the

@@ -62,6 +62,8 @@ Rules:
   cocktails) → {"en":"Alcohol","zh":"酒類"} tier "alcohol"; non-alcoholic (water/
   juice/soft drinks/coffee/tea/mocktails) → {"en":"Beverages","zh":"飲料"} tier
   "drink". Never lump them under one broad "Beverages" l1.
+- In ALL zh text, parentheses are HALF-WIDTH with a half-width space on the outside
+  of each paren — e.g. "普蘭特 (Planter's) 餐廳"; NEVER full-width （）.
   Valid JSON, no trailing commas.`;
 
 /** Validate and extract an Outline from the model's text. */

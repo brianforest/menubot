@@ -65,7 +65,7 @@ const doneKeyboard = new InlineKeyboard().text("✅ 完成並產生菜單 / Done
 
 const COLLECT_MSG =
   "📸 收到。整本菜單可多張照片／PDF 一次傳給我，全部傳完後請按【✅ 完成並產生菜單】。\n" +
-  "（強烈建議）貼上這家餐廳的 Google 地圖連結，我會據此判斷菜系、地區與幣別，辨識最準；\n" +
+  "(強烈建議) 貼上這家餐廳的 Google 地圖連結，我會據此判斷菜系、地區與幣別，辨識最準；\n" +
   "若不方便，至少用一則文字告訴我店名。\n" +
   "Send all pages (photos and/or a PDF). Best results: paste the restaurant's Google Maps " +
   "link (or at least type its name). Tap ✅ Done when finished.";
@@ -143,7 +143,7 @@ async function processBatch(
         failed.map((r) => (r as PromiseRejectedResult).reason),
       );
       await ctx.reply(
-        `⚠️ 有 ${failed.length} 個檔案下載失敗（可能檔案過大或網路問題），為避免產生不完整的菜單，請重新傳整本菜單。\n` +
+        `⚠️ 有 ${failed.length} 個檔案下載失敗 (可能檔案過大或網路問題)，為避免產生不完整的菜單，請重新傳整本菜單。\n` +
           `${failed.length} file(s) couldn't be downloaded (too large, or a network issue). ` +
           `To avoid an incomplete menu, please resend the whole menu.`,
       );
@@ -177,7 +177,7 @@ async function processBatch(
           if (route === "single" && complex === true) {
             void ctx
               .reply(
-                "🕐 此菜單版面較複雜（密集價格表），為確保價格正確改用完整辨識，約需 3–4 分鐘，請稍候。\n" +
+                "🕐 此菜單版面較複雜 (密集價格表)，為確保價格正確改用完整辨識，約需 3–4 分鐘，請稍候。\n" +
                   "This menu has a complex layout — using full recognition for price accuracy (~3–4 min).",
               )
               .catch(() => {});
@@ -340,14 +340,14 @@ setInterval(() => {
 bot.command("start", (ctx) =>
   ctx.reply(
     "👋 歡迎使用 MenuBot！\n\n" +
-      "把餐廳菜單拍照（可一次多張／整本）或直接傳 PDF 給我，全部傳完後按【✅ 完成並產生菜單】，我會自動：\n" +
+      "把餐廳菜單拍照 (可一次多張／整本) 或直接傳 PDF 給我，全部傳完後按【✅ 完成並產生菜單】，我會自動：\n" +
       "1️⃣ 讀取每道餐點\n2️⃣ 翻成英中對照\n3️⃣ 產生手機版菜單網頁，回傳分享連結。\n\n" +
       "Send menu photos (many at once) or a PDF, then tap ✅ Done — I'll turn it into a shareable bilingual web page.",
   ),
 );
 bot.command("help", (ctx) =>
   ctx.reply(
-    "傳菜單照片（可多張）或 PDF，傳完按【✅ 完成並產生菜單】即可。\n" +
+    "傳菜單照片 (可多張) 或 PDF，傳完按【✅ 完成並產生菜單】即可。\n" +
       "Send menu photos (one or many) or a PDF, then tap ✅ Done.",
   ),
 );
@@ -370,15 +370,15 @@ bot.command("vault", async (ctx) => {
   }
   const slug = parseSlug(arg);
   if (!slug) {
-    await ctx.reply("認不出 slug。請貼發佈網址（…/m/<slug>/）或直接給 slug。");
+    await ctx.reply("認不出 slug。請貼發佈網址 (…/m/<slug>/) 或直接給 slug。");
     return;
   }
   const files = readOriginals(config.archive.dir, slug);
   if (!files.length) {
-    await ctx.reply(`找不到「${slug}」的原始檔（可能是此功能上線前發佈的）。`);
+    await ctx.reply(`找不到「${slug}」的原始檔 (可能是此功能上線前發佈的)。`);
     return;
   }
-  await ctx.reply(`📂 ${slug} 的原始檔（${files.length} 個）`);
+  await ctx.reply(`📂 ${slug} 的原始檔 (${files.length} 個)`);
   for (const f of files) {
     await ctx.replyWithDocument(new InputFile(f.bytes, f.name));
   }
