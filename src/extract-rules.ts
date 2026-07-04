@@ -134,12 +134,13 @@ Other rules:
 - Preserve the original section order as it reads on the menu.
 - "den" is ALWAYS English and "dzh" is ALWAYS 繁體中文 — never the same language in
   both, never Chinese inside "den". If the menu prints no description, both are "".
-- You MAY append ONE notable, widely-known fact about a dish (a famous accolade or
+- You MAY add ONE notable, widely-known fact about a dish (a famous accolade or
   cultural claim to fame, e.g. Roti Canai's TasteAtlas "world's best bread" ranking)
-  when you are confident it is true. If you do: put it at the END of the description
-  as a parenthetical prefixed with ♦️ — in English inside "den"（♦️…）and in 繁體中文
-  inside "dzh"（♦️…）— so the reader can tell it is an added highlight, not menu text.
-  Never invent facts; when unsure, add nothing.
+  when you are confident it is true. The ONLY hard rule: the added fact must be
+  marked with a leading ♦️ so the reader can tell it apart from the menu's own
+  text — its position and form are free (trailing parenthetical, its own clause or
+  line, whatever reads naturally with that menu's style). English in "den", 繁體中文
+  in "dzh". Never invent facts; when unsure, add nothing.
 - Return valid JSON parseable by JSON.parse. No trailing commas.
 
 Example "tags" + item (illustrative):
