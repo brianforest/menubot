@@ -32,9 +32,11 @@ Content for explain_en / explain_zh (2-4 sentences, concise — shown in a small
   an English-readable respelling, e.g. "Bruschetta (broo-SKET-ta)", "Gnocchi (NYOH-kee)".
   NOT IPA. Put the pronunciation in BOTH language fields.
 - Mention the origin / culture in one clause when it is genuinely interesting.
-- Explain WHY it is translated a certain way ONLY when there is a real etymology or story
-  worth telling. Do NOT justify ordinary translations — regional wording varies (e.g.
-  芝士 vs 起司 for cheese) and explaining it is noise; just skip it.
+- NEVER discuss how the CHINESE name was chosen — no transliteration stories, no
+  alternative Chinese translations, no「中文譯名…取其…」sentences. Chinese naming varies
+  by region, and any Chinese name you mention other than sample_zh creates inconsistency
+  with the menu. Etymology is welcome ONLY for the ORIGINAL foreign word itself (e.g.
+  what "pesto" means in Italian), never for its Chinese rendering.
 - When you name the dish in 中文 inside the explanation, reuse the provided sample_zh
   VERBATIM — do NOT re-transliterate it (e.g. if sample_zh is "馥芮白", write 馥芮白,
   never 馥列白). The explanation must stay consistent with the name the diner sees.

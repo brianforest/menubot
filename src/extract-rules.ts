@@ -34,8 +34,8 @@ Output schema (return ONLY this JSON, no markdown, no commentary):
             { "en": string, "zh": string, "kind": string,
               "choices": [ { "en": string, "zh": string, "p": string } ] }
           ],
-          "den": string,                             // English description if present, else ""
-          "dzh": string                              // 繁體中文 translation of the description, else ""
+          "den": string,                             // the printed description in ENGLISH (translate to English if printed in another language); "" if the menu has none — NEVER Chinese text here
+          "dzh": string                              // 繁體中文 translation of the description, else "" — the Chinese lives ONLY here
         }
       ]
     }
@@ -132,7 +132,15 @@ Other rules:
   香草 (not 雲呢拿), 番茄 (not 蕃茄/西紅柿), 馬鈴薯 (not 薯仔). Translate
   descriptions faithfully but concisely.
 - Preserve the original section order as it reads on the menu.
-- If a field is unknown, use "" (or [] for "tags"); never invent prices.
+- "den" is ALWAYS English and "dzh" is ALWAYS 繁體中文 — never the same language in
+  both, never Chinese inside "den". If the menu prints no description, both are "".
+- You MAY add ONE notable, widely-known fact about a dish (a famous accolade or
+  cultural claim to fame, e.g. Roti Canai's TasteAtlas "world's best bread" ranking)
+  when you are confident it is true. The ONLY hard rule: the added fact must be
+  marked with a leading ♦️ so the reader can tell it apart from the menu's own
+  text — its position and form are free (trailing parenthetical, its own clause or
+  line, whatever reads naturally with that menu's style). English in "den", 繁體中文
+  in "dzh". Never invent facts; when unsure, add nothing.
 - Return valid JSON parseable by JSON.parse. No trailing commas.
 
 Example "tags" + item (illustrative):

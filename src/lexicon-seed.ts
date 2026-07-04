@@ -27,7 +27,10 @@ export const LEXICON_SEED: LexiconRow[] = [
     enTerm: "flat white",
     locale: "zh-TW",
     canonical: "馥芮白",
-    variants: ["平白咖啡", "馥列白"],
+    // 澳式白咖啡/澳式白 and bare 馥列 observed in real runs (2026-07-04). Longest-
+    // first ordering makes the overlapping variants safe (澳式白咖啡 before 澳式白,
+    // 馥列白 before 馥列); the en-gate keeps the short ones from false positives.
+    variants: ["平白咖啡", "馥列白", "馥列", "澳式白咖啡", "澳式白"],
     note: "flat white coffee",
   },
 ];

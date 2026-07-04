@@ -199,6 +199,24 @@ async function processBatch(
       )
       .catch(() => {});
 
+    // Normalize BEFORE enrich too (B1 regional + B2 lexicon are pure, zero-API,
+    // idempotent — running them twice is free): the explain generator reuses the
+    // item's sample_zh verbatim, so it must see the CANONICAL name (馥芮白), not
+    // whatever this run's extraction happened to transliterate. The post-enrich
+    // pass below still patches variant spellings inside cached explain text.
+    if (glossary) {
+      try {
+        if (config.region.enabled) normalizeMenu(menu, glossary.getRegionalMap());
+        if (config.lexicon.enabled) {
+          normalizeMenuLexicon(menu, glossary.getLexicon(config.lexicon.targetLocale), (enTerm, zh) =>
+            console.log(`[lexicon-miss] ${enTerm} ≠ ${zh}`),
+          );
+        }
+      } catch (e) {
+        console.error("pre-enrich normalization failed (continuing):", e);
+      }
+    }
+
     if (glossary) {
       await timer.time("enrich", async () => {
         try {

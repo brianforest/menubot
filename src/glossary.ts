@@ -152,12 +152,31 @@ export class Glossary {
    *  newline-joined. INSERT OR IGNORE means a hand-edited row is never
    *  overwritten. */
   seedLexicon(): void {
-    const stmt = this.db.prepare(
+    const insert = this.db.prepare(
       `INSERT OR IGNORE INTO lexicon (en_term, locale, canonical, variants, note)
        VALUES (?, ?, ?, ?, ?)`,
     );
+    const getVariants = this.db.prepare(
+      "SELECT variants FROM lexicon WHERE en_term = ? AND locale = ?",
+    );
+    const setVariants = this.db.prepare(
+      "UPDATE lexicon SET variants = ? WHERE en_term = ? AND locale = ?",
+    );
     for (const r of LEXICON_SEED) {
-      stmt.run(r.enTerm.toLowerCase(), r.locale, r.canonical, r.variants.join("\n"), r.note);
+      const term = r.enTerm.toLowerCase();
+      insert.run(term, r.locale, r.canonical, r.variants.join("\n"), r.note);
+      // canonical/note stay no-clobber (a hand-edited row wins), but VARIANTS are
+      // the curation growth path: union newly-seeded variants into an existing row
+      // so appending a variant in code actually reaches a live db. Hand-added
+      // variants are preserved by the union.
+      const row = getVariants.get(term, r.locale) as { variants: string } | undefined;
+      if (row) {
+        const existing = row.variants.split("\n").filter(Boolean);
+        const merged = [...new Set([...existing, ...r.variants])];
+        if (merged.length !== existing.length) {
+          setVariants.run(merged.join("\n"), term, r.locale);
+        }
+      }
     }
   }
 
