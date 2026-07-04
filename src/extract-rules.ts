@@ -135,6 +135,9 @@ Other rules:
 - Preserve the original section order as it reads on the menu.
 - "den" is ALWAYS English and "dzh" is ALWAYS 繁體中文 — never the same language in
   both, never Chinese inside "den". If the menu prints no description, both are "".
+- In ALL zh text, parentheses are HALF-WIDTH with a half-width space on the OUTSIDE
+  of each paren — e.g. "普蘭特 (Planter's) 餐廳"、"叁巴醬 (Sambal)". NEVER full-width
+  （）, whose padding reads too airy. No space between ) and a following punctuation.
 - You MAY add ONE notable, widely-known fact about a dish (a famous accolade or
   cultural claim to fame, e.g. Roti Canai's TasteAtlas "world's best bread" ranking)
   when you are confident it is true. The ONLY hard rule: the added fact must be
